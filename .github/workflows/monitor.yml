@@ -1,4 +1,4 @@
-name: Instagram Monitor with Dashboard
+name: Instagram Monitor with Auth Handling
 
 on:
   schedule:
@@ -47,15 +47,63 @@ jobs:
     - name: Run Instagram Monitor
       env:
         INSTAGRAM_TARGET_USER: ${{ github.event.inputs.target_user || 'bob' }}
+        # Optional: Add these as repository secrets for authenticated access
+        # INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
+        # INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_PASSWORD }}
       run: |
-        python monitor.py --target-user "${{ github.event.inputs.target_user || 'bob' }}" --output-dir data
+        echo "🔍 Starting Instagram monitoring for: ${{ github.event.inputs.target_user || 'bob' }}"
+        
+        # Add some randomization to avoid rate limits
+        sleep_time=$(shuf -i 1-10 -n 1)
+        echo "⏳ Adding ${sleep_time}s delay to avoid rate limits..."
+        sleep $sleep_time
+        
+        # Run the monitor with error handling
+        python monitor.py --target-user "${{ github.event.inputs.target_user || 'bob' }}" --output-dir data || {
+          echo "⚠️  Primary monitoring failed, but continuing deployment..."
+          
+          # Create basic fallback data if monitoring completely fails
+          mkdir -p data
+          cat > data/monitoring_summary.json << EOF
+        {
+          "username": "${{ github.event.inputs.target_user || 'bob' }}",
+          "full_name": "${{ github.event.inputs.target_user || 'bob' }}",
+          "followers": 0,
+          "following": 0,
+          "posts": 0,
+          "bio": "",
+          "is_private": true,
+          "is_verified": false,
+          "profile_pic_url": "",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
+          "profile_url": "https://instagram.com/${{ github.event.inputs.target_user || 'bob' }}",
+          "data_collection_method": "workflow_fallback",
+          "error": "Data collection failed - profile may be private or restricted",
+          "changes": {
+            "has_changes": false,
+            "changes_detected": ["Monitoring failed - using fallback data"],
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
+          }
+        }
+        EOF
+          
+          echo "📄 Created fallback data file"
+        }
         
     - name: Verify data files
       run: |
-        echo "Generated files:"
-        ls -la data/
-        echo "Content of monitoring_summary.json:"
-        cat data/monitoring_summary.json
+        echo "📁 Generated files:"
+        ls -la data/ || echo "No data directory found"
+        
+        echo ""
+        echo "📊 Content preview:"
+        if [ -f data/monitoring_summary.json ]; then
+          echo "monitoring_summary.json exists ($(wc -c < data/monitoring_summary.json) bytes)"
+          # Show first few lines of the JSON
+          head -20 data/monitoring_summary.json
+        else
+          echo "❌ monitoring_summary.json not found"
+        fi
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
@@ -68,3 +116,14 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
+      
+    - name: Summary
+      run: |
+        echo "🎉 Deployment completed!"
+        echo "📊 Dashboard URL: ${{ steps.deployment.outputs.page_url }}"
+        echo "👤 Monitored user: ${{ github.event.inputs.target_user || 'bob' }}"
+        echo ""
+        echo "💡 Tips:"
+        echo "  • Refresh the dashboard to see new data"
+        echo "  • Add Instagram credentials as secrets for better access"
+        echo "  • Monitor public profiles for best results"
