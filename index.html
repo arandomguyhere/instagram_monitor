@@ -371,7 +371,9 @@
         </div>
         
         <div class="info" id="infoMessage">
-            💡 This dashboard displays data from your latest GitHub Actions run. Enter a username and click "Monitor" to trigger a new data collection, then refresh this page to see the results.
+            💡 This dashboard monitors Instagram profiles using GitHub Actions. Enter a username and click "Monitor" to collect fresh data. 
+            <br><br>
+            <strong>⚠️ Note:</strong> Instagram requires authentication for some profiles. For best results with private or restricted accounts, add your Instagram credentials as repository secrets (INSTAGRAM_SESSION_USERNAME and INSTAGRAM_SESSION_PASSWORD).
         </div>
         
         <div class="error" id="errorMessage"></div>
@@ -513,12 +515,22 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 showError(`
-                    No monitoring data found. To get started:
-                    <br><br>
+                    <strong>📊 No monitoring data found</strong><br><br>
+                    To get started:<br>
                     1️⃣ Enter an Instagram username above<br>
                     2️⃣ Click "Monitor" to trigger data collection<br>
                     3️⃣ Wait for GitHub Actions to complete (1-2 minutes)<br>
-                    4️⃣ Refresh this page to see results
+                    4️⃣ Refresh this page to see results<br><br>
+                    
+                    <strong>💡 For better results:</strong><br>
+                    • Monitor public profiles when possible<br>
+                    • Add Instagram credentials as repository secrets<br>
+                    • Check Actions tab if monitoring fails<br><br>
+                    
+                    <a href="https://github.com/${REPO_OWNER}/${REPO_NAME}/actions" target="_blank" 
+                       style="color: white; text-decoration: underline;">
+                       🔗 View GitHub Actions
+                    </a>
                 `);
             }
         }
@@ -527,14 +539,25 @@
             hideLoading();
             errorMessage.style.display = 'none';
             
+            // Check if this is error/fallback data
+            const hasError = data.error || data.data_collection_method === 'fallback' || data.data_collection_method === 'workflow_fallback';
+            
             // Update profile info
             document.getElementById('fullName').textContent = data.full_name || data.username;
             document.getElementById('username').textContent = `@${data.username}`;
-            document.getElementById('profilePic').src = data.profile_pic_url;
+            
+            // Handle profile picture
+            const profilePic = document.getElementById('profilePic');
+            if (data.profile_pic_url && !hasError) {
+                profilePic.src = data.profile_pic_url;
+                profilePic.style.display = 'block';
+            } else {
+                profilePic.style.display = 'none';
+            }
             
             // Update bio
             const bioElement = document.getElementById('bio');
-            if (data.bio) {
+            if (data.bio && !hasError) {
                 bioElement.textContent = data.bio;
                 bioElement.style.display = 'block';
             } else {
@@ -544,12 +567,31 @@
             // Update badges
             const badgesElement = document.getElementById('badges');
             let badges = '';
-            if (data.is_verified) {
-                badges += '<span class="badge">✓ Verified</span>';
+            
+            if (hasError) {
+                badges += '<span class="badge" style="background: rgba(255,255,255,0.3);">⚠️ Limited Data</span>';
+            } else {
+                if (data.is_verified) {
+                    badges += '<span class="badge">✓ Verified</span>';
+                }
+                if (data.is_private) {
+                    badges += '<span class="badge">🔒 Private</span>';
+                }
             }
-            if (data.is_private) {
-                badges += '<span class="badge">🔒 Private</span>';
+            
+            // Add method badge
+            if (data.data_collection_method) {
+                const methodLabels = {
+                    'authenticated_api': '🔐 Authenticated',
+                    'anonymous_api': '👤 Anonymous',
+                    'web_scraping': '🌐 Web Data',
+                    'fallback': '⚠️ Fallback',
+                    'workflow_fallback': '⚠️ Failed'
+                };
+                const methodLabel = methodLabels[data.data_collection_method] || data.data_collection_method;
+                badges += `<span class="badge" style="background: rgba(255,255,255,0.2); font-size: 0.7em;">${methodLabel}</span>`;
             }
+            
             badgesElement.innerHTML = badges;
             
             // Update stats
@@ -559,6 +601,24 @@
             
             // Update Instagram link
             document.getElementById('instagramLink').href = data.profile_url || `https://instagram.com/${data.username}`;
+            
+            // Show error message if data collection failed
+            if (hasError && data.error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; margin-top: 15px; opacity: 0.9;';
+                errorDiv.innerHTML = `
+                    <strong>⚠️ Data Collection Notice:</strong><br>
+                    ${data.error}<br><br>
+                    <small>💡 For better results:<br>
+                    • Try monitoring public profiles<br>
+                    • Add Instagram credentials as repository secrets<br>
+                    • Check if the username is correct</small>
+                `;
+                
+                // Insert after bio or at the end of profile info
+                const profileInfo = document.querySelector('.profile-info').parentNode;
+                profileInfo.appendChild(errorDiv);
+            }
             
             // Show changes if available
             if (data.changes && data.changes.has_changes) {
@@ -571,9 +631,10 @@
                 changesSection.style.display = 'none';
             }
             
-            // Update timestamp
+            // Update timestamp with method info
             const timestamp = new Date(data.timestamp).toLocaleString();
-            document.getElementById('timestamp').textContent = `Last updated: ${timestamp}`;
+            const methodInfo = data.data_collection_method ? ` (via ${data.data_collection_method.replace('_', ' ')})` : '';
+            document.getElementById('timestamp').textContent = `Last updated: ${timestamp}${methodInfo}`;
             
             // Show elements
             profileCard.style.display = 'block';
