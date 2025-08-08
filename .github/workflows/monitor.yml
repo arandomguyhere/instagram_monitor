@@ -1,446 +1,130 @@
-name: 📊 Instagram Monitor
+#!/usr/bin/env python3
+"""
+Workflow Validation Script
+Validates GitHub Actions workflow file before deployment
+"""
 
-on:
-  schedule:
-    # Run every 3 hours - adjust as needed
-    # Format: minute hour day month weekday
-    - cron: '0 */3 * * *'
-  
-  workflow_dispatch:  # Allow manual trigger
-    inputs:
-      target_username:
-        description: 'Target Instagram username (optional override)'
-        required: false
-        type: string
-      force_notification:
-        description: 'Force notification even if no changes'
-        required: false
-        type: boolean
-        default: false
-      debug_mode:
-        description: 'Enable debug logging'
-        required: false
-        type: boolean
-        default: false
+import yaml
+import sys
+from pathlib import Path
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-  issues: write
-
-jobs:
-  monitor:
-    name: 🔍 Monitor Instagram Profile
-    runs-on: ubuntu-latest
+def validate_workflow():
+    """Validate the GitHub Actions workflow file"""
+    workflow_path = Path('.github/workflows/monitor.yml')
     
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-      
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-      
-      - name: 📦 Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install instaloader requests python-dateutil pytz
-          echo "✅ Dependencies installed successfully"
-      
-      - name: 📁 Create data directory
-        run: |
-          mkdir -p data
-          mkdir -p assets
-          echo "✅ Directories created"
-      
-      - name: 🔍 Run Instagram Monitor
-        env:
-          INSTAGRAM_USER: ${{ secrets.INSTAGRAM_USER }}
-          INSTAGRAM_PASS: ${{ secrets.INSTAGRAM_PASS }}
-          TARGET_USERNAME: ${{ inputs.target_username || secrets.TARGET_USERNAME }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-          DEBUG_MODE: ${{ inputs.debug_mode || 'false' }}
-        run: |
-          echo "🎯 Starting monitoring for: ${TARGET_USERNAME}"
-          echo "🔐 Session login: ${{ secrets.INSTAGRAM_USER && 'Yes' || 'No (anonymous)' }}"
-          echo "📧 Email notifications: ${{ secrets.SMTP_HOST && 'Yes' || 'No' }}"
-          echo "🔗 Webhook notifications: ${{ secrets.WEBHOOK_URL && 'Yes' || 'No' }}"
-          
-          # Run monitor with debug flag if enabled
-          if [ "$DEBUG_MODE" = "true" ]; then
-            python monitor.py --target-user "${TARGET_USERNAME}" --debug
-          else
-            python monitor.py --target-user "${TARGET_USERNAME}"
-          fi
-      
-      - name: 📊 Read monitoring summary
-        id: summary
-        run: |
-          if [ -f monitoring_summary.json ]; then
-            echo "summary_exists=true" >> $GITHUB_OUTPUT
-            echo "summary_content<<EOF" >> $GITHUB_OUTPUT
-            cat monitoring_summary.json >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            
-            # Extract key values for later use
-            success=$(jq -r '.success // false' monitoring_summary.json)
-            changes_count=$(jq -r '.changes_count // 0' monitoring_summary.json)
-            echo "success=${success}" >> $GITHUB_OUTPUT
-            echo "changes_count=${changes_count}" >> $GITHUB_OUTPUT
-          else
-            echo "summary_exists=false" >> $GITHUB_OUTPUT
-            echo "success=false" >> $GITHUB_OUTPUT
-            echo "changes_count=0" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: 🎨 Update dashboard data
-        if: steps.summary.outputs.success == 'true'
-        env:
-          TARGET_USERNAME: ${{ inputs.target_username || secrets.TARGET_USERNAME }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          echo "📊 Creating dashboard data file..."
-          python3 << 'EOF'
-          import json
-          import os
-          from datetime import datetime
-          from pathlib import Path
-          
-          def create_dashboard_data():
-              target = os.getenv('TARGET_USERNAME', 'unknown')
-              repo = os.getenv('GITHUB_REPOSITORY', '')
-              
-              dashboard_data = {
-                  'last_updated': datetime.now().isoformat(),
-                  'target_username': target,
-                  'github_repo': repo,
-                  'monitoring_active': True,
-                  'generated_by': 'Instagram Monitor v2.0',
-                  'dashboard_url': f"https://{repo.split('/')[0]}.github.io/{repo.split('/')[1]}/" if repo else ""
-              }
-              
-              # Add latest data if exists
-              latest_file = Path(f'data/{target}_latest.json')
-              if latest_file.exists():
-                  try:
-                      with open(latest_file, 'r') as f:
-                          latest_data = json.load(f)
-                          dashboard_data['latest'] = latest_data
-                          print(f"✅ Added latest data: {latest_data.get('followers', 'N/A')} followers")
-                  except Exception as e:
-                      print(f"⚠️ Could not read latest data: {e}")
-              
-              # Add history data if exists (last 100 entries for performance)
-              history_file = Path(f'data/{target}_history.json')
-              if history_file.exists():
-                  try:
-                      with open(history_file, 'r') as f:
-                          history = json.load(f)
-                          dashboard_data['history'] = history[-100:]  # Last 100 entries
-                          dashboard_data['total_history_count'] = len(history)
-                          print(f"✅ Added history data: {len(history)} total records, {len(dashboard_data['history'])} in dashboard")
-                  except Exception as e:
-                      print(f"⚠️ Could not read history data: {e}")
-                      dashboard_data['history'] = []
-              else:
-                  dashboard_data['history'] = []
-              
-              # Calculate statistics
-              if 'history' in dashboard_data and len(dashboard_data['history']) > 1:
-                  history = dashboard_data['history']
-                  try:
-                      first_record = history[0]
-                      last_record = history[-1]
-                      
-                      # Calculate growth metrics
-                      follower_growth = last_record.get('followers', 0) - first_record.get('followers', 0)
-                      days_tracked = len(history)  # Rough estimate
-                      
-                      dashboard_data['stats'] = {
-                          'follower_growth': follower_growth,
-                          'days_tracked': days_tracked,
-                          'total_changes': sum(1 for record in history if record.get('recent_changes')),
-                          'avg_followers_per_day': round(follower_growth / max(days_tracked, 1), 2) if days_tracked > 0 else 0
-                      }
-                      print(f"✅ Added statistics: {follower_growth:+d} followers over ~{days_tracked} data points")
-                  except Exception as e:
-                      print(f"⚠️ Could not calculate statistics: {e}")
-              
-              # Save dashboard data
-              with open('dashboard_data.json', 'w') as f:
-                  json.dump(dashboard_data, f, indent=2, ensure_ascii=False)
-              
-              print(f"✅ Dashboard data created for @{target}")
-              return dashboard_data
-          
-          create_dashboard_data()
-          EOF
-      
-      - name: 💾 Commit and push changes
-        if: steps.summary.outputs.success == 'true'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "Instagram Monitor Bot 🤖"
-          
-          # Add files
-          git add data/ dashboard_data.json monitoring_summary.json
-          
-          # Check if there are changes to commit
-          if git diff --staged --quiet; then
-            echo "ℹ️ No changes to commit"
-          else
-            # Create commit message with summary
-            TARGET="${{ inputs.target_username || secrets.TARGET_USERNAME }}"
-            CHANGES="${{ steps.summary.outputs.changes_count }}"
-            TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-            
-            if [ "$CHANGES" -gt 0 ]; then
-              COMMIT_MSG="📊 Update @${TARGET} data - ${CHANGES} changes detected (${TIMESTAMP})"
-            else
-              COMMIT_MSG="📊 Update @${TARGET} data - no changes (${TIMESTAMP})"
-            fi
-            
-            git commit -m "$COMMIT_MSG"
-            git push origin main
-            echo "✅ Changes committed and pushed"
-          fi
-      
-      - name: 📧 Send email notification
-        if: |
-          steps.summary.outputs.success == 'true' && 
-          (steps.summary.outputs.changes_count > 0 || inputs.force_notification) &&
-          secrets.SMTP_HOST != ''
-        env:
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-          TARGET_USERNAME: ${{ inputs.target_username || secrets.TARGET_USERNAME }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          echo "📧 Sending email notification..."
-          python3 << 'EOF'
-          import smtplib
-          import ssl
-          import json
-          import os
-          from email.mime.text import MIMEText
-          from email.mime.multipart import MIMEMultipart
-          from datetime import datetime
-          
-          try:
-              # Read summary
-              with open('monitoring_summary.json', 'r') as f:
-                  summary = json.load(f)
-              
-              if summary.get('success'):
-                  # Create email
-                  msg = MIMEMultipart()
-                  msg['From'] = os.getenv('SENDER_EMAIL')
-                  msg['To'] = os.getenv('RECEIVER_EMAIL')
-                  
-                  changes_count = summary.get('changes_count', 0)
-                  username = summary.get('target_username', 'unknown')
-                  
-                  if changes_count > 0:
-                      msg['Subject'] = f'📊 Instagram Monitor: @{username} - {changes_count} changes detected'
-                      
-                      body = f"""
-          🎯 Instagram Monitor Alert
-          
-          Changes detected for @{username}:
-          
-          📊 Current Stats:
-          • Followers: {summary.get('followers', 'N/A'):,}
-          • Following: {summary.get('following', 'N/A'):,}
-          • Posts: {summary.get('posts_count', 'N/A'):,}
-          
-          🔄 Changes: {changes_count}
-          ⏰ Last Update: {summary.get('timestamp', 'N/A')}
-          
-          📈 View Dashboard: https://{os.getenv('GITHUB_REPOSITORY', '').split('/')[0]}.github.io/{os.getenv('GITHUB_REPOSITORY', '').split('/')[1]}/
-          
-          This is an automated message from Instagram Monitor.
-          Repository: https://github.com/{os.getenv('GITHUB_REPOSITORY', '')}
-                      """
-                  else:
-                      msg['Subject'] = f'📊 Instagram Monitor: @{username} - Status update'
-                      
-                      body = f"""
-          🎯 Instagram Monitor Status Update
-          
-          No changes detected for @{username}
-          
-          📊 Current Stats:
-          • Followers: {summary.get('followers', 'N/A'):,}
-          • Following: {summary.get('following', 'N/A'):,}
-          • Posts: {summary.get('posts_count', 'N/A'):,}
-          
-          ⏰ Last Check: {summary.get('timestamp', 'N/A')}
-          🔄 Monitoring: Active
-          
-          📈 View Dashboard: https://{os.getenv('GITHUB_REPOSITORY', '').split('/')[0]}.github.io/{os.getenv('GITHUB_REPOSITORY', '').split('/')[1]}/
-          
-          This is an automated status message from Instagram Monitor.
-                      """
-                  
-                  msg.attach(MIMEText(body.strip(), 'plain'))
-                  
-                  # Send email
-                  context = ssl.create_default_context()
-                  smtp_port = int(os.getenv('SMTP_PORT', 587))
-                  
-                  with smtplib.SMTP(os.getenv('SMTP_HOST'), smtp_port) as server:
-                      server.starttls(context=context)
-                      server.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASS'))
-                      server.send_message(msg)
-                  
-                  print('✅ Email notification sent successfully')
-              else:
-                  print('❌ Monitoring failed, not sending email notification')
-          
-          except Exception as e:
-              print(f'⚠️ Failed to send email notification: {e}')
-          EOF
-      
-      - name: 🎨 Generate Pages artifact
-        run: |
-          echo "🎨 Preparing GitHub Pages deployment..."
-          
-          # Ensure index.html exists
-          if [ ! -f index.html ]; then
-            echo "⚠️ Warning: index.html not found, dashboard may not work properly"
-            echo "Creating basic index.html..."
-            cat > index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <title>Instagram Monitor</title>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body>
-              <h1>Instagram Monitor</h1>
-              <p>Dashboard is being set up...</p>
-              <p>Please add the complete index.html file to your repository.</p>
-          </body>
-          </html>
-          EOF
-          fi
-          
-          # Create artifact for Pages
-          mkdir -p _site
-          
-          # Copy all necessary files
-          cp -r . _site/
-          
-          # Remove sensitive files from site
-          rm -f _site/.env* _site/monitoring_summary.json _site/.git* _site/requirements.txt
-          rm -rf _site/.github _site/.git
-          
-          # Ensure required directories exist in site
-          mkdir -p _site/data _site/assets
-          
-          # Create a site info file
-          cat > _site/site_info.json << EOF
-          {
-            "generated": "$(date -u '+%Y-%m-%dT%H:%M:%SZ')",
-            "repository": "${{ github.repository }}",
-            "commit": "${{ github.sha }}",
-            "version": "Instagram Monitor v2.0"
-          }
-          EOF
-          
-          echo "✅ Pages artifact prepared"
-      
-      - name: 📤 Upload Pages artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: '_site'
-      
-      - name: 📊 Display summary in job
-        if: always()
-        run: |
-          echo "## 📊 Instagram Monitor Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ -f monitoring_summary.json ]; then
-            echo "### 📈 Results" >> $GITHUB_STEP_SUMMARY
-            python3 << 'EOF' >> $GITHUB_STEP_SUMMARY
-          import json
-          
-          with open('monitoring_summary.json', 'r') as f:
-              summary = json.load(f)
-          
-          target = summary.get('target_username', 'unknown')
-          success = summary.get('success', False)
-          changes = summary.get('changes_count', 0)
-          
-          print(f"**🎯 Target**: @{target}")
-          print(f"**✅ Status**: {'Success' if success else 'Failed'}")
-          print(f"**📅 Timestamp**: {summary.get('timestamp', 'N/A')}")
-          
-          if success:
-              print(f"**🔄 Changes**: {changes}")
-              print(f"**👥 Followers**: {summary.get('followers', 'N/A'):,}")
-              print(f"**🔗 Following**: {summary.get('following', 'N/A'):,}")
-              print(f"**📸 Posts**: {summary.get('posts_count', 'N/A'):,}")
-              
-              if changes > 0:
-                  print(f"**🎉 Status**: {changes} changes detected!")
-              else:
-                  print(f"**😴 Status**: No changes detected")
-          else:
-              error = summary.get('error', 'Unknown error')
-              print(f"**❌ Error**: {error}")
-          EOF
-          else
-            echo "❌ **Status**: No summary file generated" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
-          echo "- 📈 [View Dashboard](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY
-          echo "- 📊 [Repository](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
-          echo "- ⚙️ [Actions](https://github.com/${{ github.repository }}/actions)" >> $GITHUB_STEP_SUMMARY
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "*Generated by Instagram Monitor v2.0 🤖*" >> $GITHUB_STEP_SUMMARY
-
-  deploy:
-    name: 🚀 Deploy to GitHub Pages
-    needs: monitor
-    runs-on: ubuntu-latest
-    if: always()
+    print("🔍 Validating GitHub Actions workflow...")
     
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    if not workflow_path.exists():
+        print(f"❌ Workflow file not found: {workflow_path}")
+        return False
     
-    steps:
-      - name: 🚀 Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+    try:
+        # Load and parse YAML
+        with open(workflow_path, 'r') as f:
+            workflow = yaml.safe_load(f)
         
-      - name: 📊 Deployment summary
-        run: |
-          echo "🚀 **Deployment Complete**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Dashboard URL: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+        print("✅ YAML syntax is valid")
+        
+        # Check required top-level keys
+        required_keys = ['name', 'on', 'permissions', 'jobs']
+        for key in required_keys:
+            if key in workflow:
+                print(f"✅ Contains '{key}'")
+            else:
+                print(f"❌ Missing required key: '{key}'")
+                return False
+        
+        # Check jobs structure
+        jobs = workflow.get('jobs', {})
+        if 'monitor' in jobs and 'deploy' in jobs:
+            print("✅ Contains required jobs: monitor, deploy")
+        else:
+            print("❌ Missing required jobs")
+            return False
+        
+        # Check for problematic patterns
+        workflow_content = open(workflow_path, 'r').read()
+        
+        # Check for the specific error pattern
+        problematic_patterns = [
+            'secrets.SMTP_HOST',
+            'secrets.GITHUB_TOKEN',
+            'secrets.' in workflow_content and 'if:' in workflow_content
+        ]
+        
+        has_issues = False
+        for pattern in problematic_patterns:
+            if isinstance(pattern, str) and pattern in workflow_content:
+                print(f"⚠️ Found potentially problematic pattern: {pattern}")
+                print("   Note: 'secrets' context may not be available in 'if' conditions")
+                has_issues = True
+        
+        if not has_issues:
+            print("✅ No problematic patterns detected")
+        
+        # Check environment variables in monitor job
+        monitor_job = jobs.get('monitor', {})
+        monitor_steps = monitor_job.get('steps', [])
+        
+        instagram_step = None
+        for step in monitor_steps:
+            if 'Run Instagram Monitor' in step.get('name', ''):
+                instagram_step = step
+                break
+        
+        if instagram_step and 'env' in instagram_step:
+            env_vars = instagram_step['env']
+            required_env_vars = ['TARGET_USERNAME', 'GITHUB_TOKEN', 'GITHUB_REPOSITORY']
+            
+            for var in required_env_vars:
+                if var in env_vars:
+                    print(f"✅ Environment variable: {var}")
+                else:
+                    print(f"❌ Missing environment variable: {var}")
+                    return False
+        else:
+            print("⚠️ Could not find Instagram Monitor step or environment variables")
+        
+        print("\n🎉 Workflow validation passed!")
+        return True
+        
+    except yaml.YAMLError as e:
+        print(f"❌ YAML syntax error: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Validation error: {e}")
+        return False
+
+def show_common_fixes():
+    """Show common fixes for workflow issues"""
+    print("\n🔧 Common Fixes:")
+    print("=" * 20)
+    print("1. ❌ 'secrets' in 'if' conditions:")
+    print("   ✅ Move secret checks into step environment variables")
+    print()
+    print("2. ❌ YAML indentation errors:")
+    print("   ✅ Use consistent 2-space indentation")
+    print()
+    print("3. ❌ Missing permissions:")
+    print("   ✅ Add required permissions at top level")
+    print()
+    print("4. ❌ Invalid cron syntax:")
+    print("   ✅ Use https://crontab.guru/ to validate")
+
+def main():
+    print("🧪 GitHub Actions Workflow Validator")
+    print("=" * 40)
+    
+    success = validate_workflow()
+    
+    if not success:
+        show_common_fixes()
+        print("\n❌ Workflow validation failed!")
+        print("📝 Please fix the issues above before deploying.")
+        sys.exit(1)
+    else:
+        print("\n✅ Workflow is valid and ready for deployment!")
+        print("🚀 You can now commit and push to trigger the workflow.")
+
+if __name__ == "__main__":
+    main()
