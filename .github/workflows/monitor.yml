@@ -7,60 +7,58 @@ on:
 
 permissions:
   contents: write
-  issues: write
   pages: write
+  id-token: write
 
 jobs:
   monitor:
-    name: Monitor Instagram
+    name: Monitor Instagram Activity
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: 🔧 Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
 
-      - name: Run Instagram Monitor
+      - name: ▶️ Run Instagram Monitor
         env:
           INSTAGRAM_USER: ${{ secrets.INSTAGRAM_USER }}
           INSTAGRAM_PASS: ${{ secrets.INSTAGRAM_PASS }}
           TARGET_USERNAME: ${{ secrets.TARGET_USERNAME }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-          DEBUG_MODE: ${{ secrets.DEBUG_MODE }}
         run: |
-          python monitor.py
+          python monitor.py \
+            --target-user "$TARGET_USERNAME" \
+            --session-user "$INSTAGRAM_USER" \
+            --session-pass "$INSTAGRAM_PASS"
 
   deploy:
-    name: Deploy Dashboard to GitHub Pages
+    name: 🚀 Deploy to GitHub Pages
     needs: monitor
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Pages
+      - name: 📄 Setup Pages
         uses: actions/configure-pages@v3
 
-      - name: Upload Artifact
+      - name: 🧹 Clean existing output
+        run: |
+          mkdir -p output
+          cp -r index.html css js assets data output/
+
+      - name: 📤 Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: './'
+          path: ./output
 
-      - name: Deploy to GitHub Pages
+      - name: 🚀 Deploy to GitHub Pages
         uses: actions/deploy-pages@v2
