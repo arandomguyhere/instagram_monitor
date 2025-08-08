@@ -1,6 +1,17 @@
-instaloader
-requests
-python-dateutil
-pytz
-tzlocal
-python-dotenv
+# Instagram Monitor - GitHub Actions Edition
+# Python dependencies for monitoring script
+
+# Core Instagram API library
+instaloader>=4.10.3
+
+# HTTP requests library
+requests>=2.31.0
+
+# Date/time manipulation
+python-dateutil>=2.8.2
+
+# Timezone handling
+pytz>=2023.3
+
+# Optional: Enhanced error handling
+urllib3>=2.0.0
