@@ -7,7 +7,7 @@ on:
       target_username:
         description: 'Instagram username to monitor'
         required: true
-        default: 'exampleuser'
+        default: 'bob'
   schedule:
     - cron: '0 */6 * * *' # Runs every 6 hours
 
@@ -35,7 +35,7 @@ jobs:
 
       - name: 🔍 Run Instagram Monitor
         run: |
-          python instagram_monitor.py --target-user "${{ github.event.inputs.target_username }}"
+          python monitor.py --target-user "${{ github.event.inputs.target_username }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
