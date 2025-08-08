@@ -50,12 +50,12 @@
         .search-container {
             position: relative;
             max-width: 500px;
-            margin: 0 auto;
+            margin: 0 auto 20px;
         }
         
         .search-input {
             width: 100%;
-            padding: 15px 50px 15px 20px;
+            padding: 15px 120px 15px 20px;
             font-size: 1.1em;
             border: 2px solid #e1e8ed;
             border-radius: 50px;
@@ -91,14 +91,35 @@
         .search-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-            transform: translateY(-50%) scale(1);
         }
         
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-            animation: pulse 2s ease-in-out infinite;
+        .quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .action-btn {
+            background: linear-gradient(45deg, #51cf66, #40c057);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .action-btn.secondary {
+            background: linear-gradient(45deg, #868e96, #6c757d);
         }
         
         .profile-card {
@@ -149,9 +170,6 @@
             padding: 4px 12px;
             border-radius: 15px;
             font-size: 0.8em;
-            display: flex;
-            align-items: center;
-            gap: 5px;
         }
         
         .stats-grid {
@@ -188,6 +206,28 @@
             letter-spacing: 1px;
         }
         
+        .changes-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .changes-title {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .change-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
         .error {
             background: #ff6b6b;
             color: white;
@@ -208,10 +248,28 @@
             display: none;
         }
         
-        .bio {
-            opacity: 0.9;
-            line-height: 1.6;
-            margin-top: 15px;
+        .info {
+            background: #339af0;
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            animation: pulse 2s ease-in-out infinite;
+            display: none;
+        }
+        
+        .timestamp {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 20px;
         }
         
         .profile-link {
@@ -232,13 +290,6 @@
         
         .profile-link a:hover {
             transform: scale(1.05);
-        }
-        
-        .timestamp {
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 20px;
         }
         
         @keyframes pulse {
@@ -272,39 +323,19 @@
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
-        }
-        
-        .recent-searches {
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        .recent-searches h3 {
-            color: #666;
-            margin-bottom: 10px;
-            font-size: 1em;
-        }
-        
-        .search-tags {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .search-tag {
-            background: #f8f9fa;
-            color: #495057;
-            padding: 5px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9em;
-        }
-        
-        .search-tag:hover {
-            background: #667eea;
-            color: white;
+            
+            .search-input {
+                padding-right: 100px;
+            }
+            
+            .quick-actions {
+                gap: 10px;
+            }
+            
+            .action-btn {
+                padding: 8px 16px;
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
@@ -312,7 +343,7 @@
     <div class="container">
         <div class="header">
             <h1>📊 Instagram Monitor Dashboard</h1>
-            <p>Enter any Instagram username to view real-time analytics</p>
+            <p>Monitor Instagram profiles with GitHub Actions automation</p>
         </div>
         
         <div class="search-section">
@@ -320,30 +351,33 @@
                 <input 
                     type="text" 
                     class="search-input" 
-                    placeholder="Enter Instagram username (e.g., bob, cristiano, therock)"
+                    placeholder="Enter Instagram username"
                     id="usernameInput"
+                    value="bob"
                 >
-                <button class="search-btn" onclick="searchProfile()" id="searchBtn">
-                    Search
+                <button class="search-btn" onclick="triggerMonitoring()" id="searchBtn">
+                    Monitor
                 </button>
             </div>
             
-            <div class="recent-searches">
-                <h3>Quick Search</h3>
-                <div class="search-tags">
-                    <span class="search-tag" onclick="quickSearch('bob')">bob</span>
-                    <span class="search-tag" onclick="quickSearch('cristiano')">cristiano</span>
-                    <span class="search-tag" onclick="quickSearch('therock')">therock</span>
-                    <span class="search-tag" onclick="quickSearch('selenagomez')">selenagomez</span>
-                    <span class="search-tag" onclick="quickSearch('kimkardashian')">kimkardashian</span>
-                </div>
+            <div class="quick-actions">
+                <button class="action-btn" onclick="setUser('bob')">bob</button>
+                <button class="action-btn" onclick="setUser('cristiano')">cristiano</button>
+                <button class="action-btn" onclick="setUser('therock')">therock</button>
+                <button class="action-btn" onclick="setUser('selenagomez')">selenagomez</button>
+                <a href="./data/monitoring_summary.json" target="_blank" class="action-btn secondary">View Raw Data</a>
+                <a href="https://github.com/USER/REPO/actions" target="_blank" class="action-btn secondary" id="actionsLink">View Actions</a>
             </div>
+        </div>
+        
+        <div class="info" id="infoMessage">
+            💡 This dashboard displays data from your latest GitHub Actions run. Enter a username and click "Monitor" to trigger a new data collection, then refresh this page to see the results.
         </div>
         
         <div class="error" id="errorMessage"></div>
         <div class="success" id="successMessage"></div>
-        <div class="loading" id="loadingMessage" style="display: none;">
-            🔍 Fetching Instagram data...
+        <div class="loading" id="loadingMessage">
+            🔄 Monitoring in progress... This may take 1-2 minutes.
         </div>
         
         <div class="profile-card" id="profileCard">
@@ -355,10 +389,10 @@
                     <div class="badges" id="badges"></div>
                 </div>
             </div>
-            <div class="bio" id="bio"></div>
+            <div id="bio" style="opacity: 0.9; line-height: 1.6; margin-top: 15px;"></div>
         </div>
         
-        <div class="stats-grid" id="statsGrid" style="display: none;">
+        <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
                 <div class="stat-number" id="followersCount">0</div>
                 <div class="stat-label">Followers</div>
@@ -373,7 +407,12 @@
             </div>
         </div>
         
-        <div class="profile-link" id="profileLink" style="display: none;">
+        <div class="changes-section" id="changesSection">
+            <h3 class="changes-title">🔔 Recent Changes</h3>
+            <div id="changesList"></div>
+        </div>
+        
+        <div class="profile-link" id="profileLink">
             <a href="#" target="_blank" id="instagramLink">View on Instagram</a>
         </div>
         
@@ -381,8 +420,11 @@
     </div>
     
     <script>
-        // CORS proxy for Instagram requests
-        const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+        const REPO_OWNER = window.location.hostname.split('.')[0]; // Extract from GitHub Pages URL
+        const REPO_NAME = window.location.pathname.split('/')[1] || 'instagram_monitor';
+        
+        // Update actions link with correct repository
+        document.getElementById('actionsLink').href = `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions`;
         
         // Elements
         const usernameInput = document.getElementById('usernameInput');
@@ -390,29 +432,51 @@
         const loadingMessage = document.getElementById('loadingMessage');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
+        const infoMessage = document.getElementById('infoMessage');
         const profileCard = document.getElementById('profileCard');
         const statsGrid = document.getElementById('statsGrid');
+        const changesSection = document.getElementById('changesSection');
         const profileLink = document.getElementById('profileLink');
         
         // Add enter key support
         usernameInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                searchProfile();
+                triggerMonitoring();
             }
         });
         
-        function quickSearch(username) {
+        function setUser(username) {
             usernameInput.value = username;
-            searchProfile();
+            loadData();
+        }
+        
+        function triggerMonitoring() {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                showError('Please enter an Instagram username');
+                return;
+            }
+            
+            showLoading();
+            infoMessage.style.display = 'none';
+            
+            // Open GitHub Actions workflow dispatch
+            const workflowUrl = `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions/workflows/monitor.yml`;
+            
+            showSuccess(`Opening GitHub Actions to monitor @${username}. After the workflow completes, refresh this page to see the results.`);
+            
+            // Auto-refresh after 2 minutes
+            setTimeout(() => {
+                loadData();
+            }, 120000);
+            
+            window.open(workflowUrl, '_blank');
         }
         
         function showLoading() {
             loadingMessage.style.display = 'block';
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
-            profileCard.style.display = 'none';
-            statsGrid.style.display = 'none';
-            profileLink.style.display = 'none';
             searchBtn.disabled = true;
             searchBtn.textContent = 'Loading...';
         }
@@ -420,133 +484,58 @@
         function hideLoading() {
             loadingMessage.style.display = 'none';
             searchBtn.disabled = false;
-            searchBtn.textContent = 'Search';
+            searchBtn.textContent = 'Monitor';
         }
         
         function showError(message) {
             hideLoading();
-            errorMessage.textContent = message;
+            errorMessage.innerHTML = message;
             errorMessage.style.display = 'block';
-            profileCard.style.display = 'none';
-            statsGrid.style.display = 'none';
-            profileLink.style.display = 'none';
         }
         
         function showSuccess(message) {
-            successMessage.textContent = message;
+            hideLoading();
+            successMessage.innerHTML = message;
             successMessage.style.display = 'block';
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 3000);
         }
         
-        async function searchProfile() {
-            const username = usernameInput.value.trim();
-            
-            if (!username) {
-                showError('Please enter an Instagram username');
-                return;
-            }
-            
-            // Clean username (remove @ if present)
-            const cleanUsername = username.replace('@', '');
-            
-            showLoading();
-            
+        async function loadData() {
             try {
-                // Method 1: Try Instagram's web interface endpoint
-                const response = await fetch(`${CORS_PROXY}https://www.instagram.com/${cleanUsername}/?__a=1&__d=dis`);
-                
+                const response = await fetch('./data/monitoring_summary.json');
                 if (!response.ok) {
-                    throw new Error('Profile not found or private');
-                }
-                
-                const html = await response.text();
-                
-                // Extract JSON data from HTML
-                const jsonMatch = html.match(/window\._sharedData\s*=\s*({.+?});/);
-                if (!jsonMatch) {
-                    throw new Error('Could not parse profile data');
-                }
-                
-                const data = JSON.parse(jsonMatch[1]);
-                const user = data.entry_data?.ProfilePage?.[0]?.graphql?.user;
-                
-                if (!user) {
-                    // Try alternative method
-                    await searchProfileAlternative(cleanUsername);
-                    return;
-                }
-                
-                displayProfile(user, cleanUsername);
-                
-            } catch (error) {
-                console.error('Primary method failed:', error);
-                // Fallback to alternative method
-                await searchProfileAlternative(cleanUsername);
-            }
-        }
-        
-        async function searchProfileAlternative(username) {
-            try {
-                // Alternative method using different endpoint
-                const response = await fetch(`${CORS_PROXY}https://www.instagram.com/web/search/topsearch/?query=${username}`);
-                
-                if (!response.ok) {
-                    throw new Error('Profile search failed');
+                    throw new Error('No data available yet');
                 }
                 
                 const data = await response.json();
-                const users = data.users || [];
-                const user = users.find(u => u.user.username.toLowerCase() === username.toLowerCase());
-                
-                if (!user) {
-                    throw new Error('Profile not found');
-                }
-                
-                // Get more detailed info
-                const profileResponse = await fetch(`${CORS_PROXY}https://www.instagram.com/${username}/`);
-                const profileHtml = await profileResponse.text();
-                
-                // Parse HTML for additional details
-                const followerMatch = profileHtml.match(/"edge_followed_by":{"count":(\d+)}/);
-                const followingMatch = profileHtml.match(/"edge_follow":{"count":(\d+)}/);
-                const postsMatch = profileHtml.match(/"edge_owner_to_timeline_media":{"count":(\d+)}/);
-                const bioMatch = profileHtml.match(/"biography":"([^"]*?)"/);
-                
-                const profileData = {
-                    username: user.user.username,
-                    full_name: user.user.full_name,
-                    profile_pic_url: user.user.profile_pic_url,
-                    is_verified: user.user.is_verified,
-                    is_private: user.user.is_private,
-                    biography: bioMatch ? bioMatch[1].replace(/\\n/g, '\n').replace(/\\u[\dA-F]{4}/gi, '') : '',
-                    edge_followed_by: { count: followerMatch ? parseInt(followerMatch[1]) : 0 },
-                    edge_follow: { count: followingMatch ? parseInt(followingMatch[1]) : 0 },
-                    edge_owner_to_timeline_media: { count: postsMatch ? parseInt(postsMatch[1]) : 0 }
-                };
-                
-                displayProfile(profileData, username);
+                displayProfile(data);
+                infoMessage.style.display = 'none';
                 
             } catch (error) {
-                console.error('Alternative method failed:', error);
-                // Last resort: show mock data structure
-                showError(`Unable to fetch data for @${username}. This could be due to:\n• Private account\n• Rate limiting\n• CORS restrictions\n• Invalid username\n\nTry again in a few moments.`);
+                console.error('Error loading data:', error);
+                showError(`
+                    No monitoring data found. To get started:
+                    <br><br>
+                    1️⃣ Enter an Instagram username above<br>
+                    2️⃣ Click "Monitor" to trigger data collection<br>
+                    3️⃣ Wait for GitHub Actions to complete (1-2 minutes)<br>
+                    4️⃣ Refresh this page to see results
+                `);
             }
         }
         
-        function displayProfile(user, username) {
+        function displayProfile(data) {
             hideLoading();
+            errorMessage.style.display = 'none';
             
             // Update profile info
-            document.getElementById('fullName').textContent = user.full_name || user.username;
-            document.getElementById('username').textContent = `@${user.username}`;
-            document.getElementById('profilePic').src = user.profile_pic_url;
+            document.getElementById('fullName').textContent = data.full_name || data.username;
+            document.getElementById('username').textContent = `@${data.username}`;
+            document.getElementById('profilePic').src = data.profile_pic_url;
             
             // Update bio
             const bioElement = document.getElementById('bio');
-            if (user.biography) {
-                bioElement.textContent = user.biography;
+            if (data.bio) {
+                bioElement.textContent = data.bio;
                 bioElement.style.display = 'block';
             } else {
                 bioElement.style.display = 'none';
@@ -555,47 +544,53 @@
             // Update badges
             const badgesElement = document.getElementById('badges');
             let badges = '';
-            if (user.is_verified) {
+            if (data.is_verified) {
                 badges += '<span class="badge">✓ Verified</span>';
             }
-            if (user.is_private) {
+            if (data.is_private) {
                 badges += '<span class="badge">🔒 Private</span>';
             }
             badgesElement.innerHTML = badges;
             
             // Update stats
-            document.getElementById('followersCount').textContent = (user.edge_followed_by?.count || 0).toLocaleString();
-            document.getElementById('followingCount').textContent = (user.edge_follow?.count || 0).toLocaleString();
-            document.getElementById('postsCount').textContent = (user.edge_owner_to_timeline_media?.count || 0).toLocaleString();
+            document.getElementById('followersCount').textContent = data.followers.toLocaleString();
+            document.getElementById('followingCount').textContent = data.following.toLocaleString();
+            document.getElementById('postsCount').textContent = data.posts.toLocaleString();
             
             // Update Instagram link
-            document.getElementById('instagramLink').href = `https://instagram.com/${user.username}`;
+            document.getElementById('instagramLink').href = data.profile_url || `https://instagram.com/${data.username}`;
+            
+            // Show changes if available
+            if (data.changes && data.changes.has_changes) {
+                const changesList = document.getElementById('changesList');
+                changesList.innerHTML = data.changes.changes_detected
+                    .map(change => `<div class="change-item">${change}</div>`)
+                    .join('');
+                changesSection.style.display = 'block';
+            } else {
+                changesSection.style.display = 'none';
+            }
             
             // Update timestamp
-            document.getElementById('timestamp').textContent = `Last updated: ${new Date().toLocaleString()}`;
+            const timestamp = new Date(data.timestamp).toLocaleString();
+            document.getElementById('timestamp').textContent = `Last updated: ${timestamp}`;
             
-            // Show elements with animation
+            // Show elements
             profileCard.style.display = 'block';
-            profileCard.className = 'profile-card fade-in';
+            statsGrid.style.display = 'grid';
+            profileLink.style.display = 'block';
             
-            setTimeout(() => {
-                statsGrid.style.display = 'grid';
-                statsGrid.className = 'stats-grid fade-in';
-            }, 200);
-            
-            setTimeout(() => {
-                profileLink.style.display = 'block';
-                profileLink.className = 'profile-link fade-in';
-            }, 400);
-            
-            showSuccess(`Successfully loaded @${user.username}`);
+            // Update input to match loaded data
+            usernameInput.value = data.username;
         }
         
-        // Load a default profile on page load
+        // Auto-load data on page load
         window.addEventListener('load', () => {
-            usernameInput.value = 'bob';
-            searchProfile();
+            loadData();
         });
+        
+        // Auto-refresh every 2 minutes
+        setInterval(loadData, 120000);
     </script>
 </body>
 </html>
