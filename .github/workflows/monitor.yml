@@ -2,8 +2,8 @@ name: Instagram Monitor
 
 on:
   schedule:
-    - cron: '0 */3 * * *'  # Runs every 3 hours
-  workflow_dispatch:
+    - cron: '0 */3 * * *'  # Every 3 hours
+  workflow_dispatch:       # Allows manual trigger
 
 permissions:
   contents: write
@@ -12,53 +12,55 @@ permissions:
 
 jobs:
   monitor:
-    name: Monitor Instagram Activity
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 🧾 Checkout Repository
         uses: actions/checkout@v3
 
-      - name: 🔧 Set up Python
+      - name: 🐍 Set Up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: 📦 Install dependencies
-        run: pip install -r requirements.txt
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: ▶️ Run Instagram Monitor
         env:
+          TARGET_USERNAME: ${{ secrets.TARGET_USERNAME }}
           INSTAGRAM_USER: ${{ secrets.INSTAGRAM_USER }}
           INSTAGRAM_PASS: ${{ secrets.INSTAGRAM_PASS }}
-          TARGET_USERNAME: ${{ secrets.TARGET_USERNAME }}
+          DEBUG_MODE: ${{ secrets.DEBUG_MODE || 'false' }}
         run: |
+          echo "🔍 Monitoring Instagram user: $TARGET_USERNAME"
           python monitor.py \
             --target-user "$TARGET_USERNAME" \
             --session-user "$INSTAGRAM_USER" \
-            --session-pass "$INSTAGRAM_PASS"
+            --session-pass "$INSTAGRAM_PASS" \
+            $([[ "$DEBUG_MODE" == "true" ]] && echo "--debug")
 
   deploy:
-    name: 🚀 Deploy to GitHub Pages
     needs: monitor
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout
         uses: actions/checkout@v3
 
-      - name: 📄 Setup Pages
+      - name: 🔧 Setup Pages
         uses: actions/configure-pages@v3
 
-      - name: 🧹 Clean existing output
-        run: |
-          mkdir -p output
-          cp -r index.html css js assets data output/
-
-      - name: 📤 Upload GitHub Pages artifact
+      - name: 🚀 Upload Dashboard to GitHub Pages
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ./output
+          path: './'
 
-      - name: 🚀 Deploy to GitHub Pages
+      - name: ✅ Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v2
