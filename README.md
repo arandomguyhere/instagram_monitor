@@ -1,7 +1,7 @@
 # Instagram Monitor - GitHub Actions Edition
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/yourusername/instagram-monitor/main/assets/logo.png" alt="Instagram Monitor Logo" width="120"/>
+  <img src="https://raw.githubusercontent.com/arandomguyhere/instagram-monitor/main/assets/logo.png" alt="Instagram Monitor Logo" width="120"/>
   <h3>Modern Instagram Monitoring with GitHub Actions</h3>
   <p>Track Instagram users' activities with automated monitoring and beautiful analytics dashboard</p>
 </div>
