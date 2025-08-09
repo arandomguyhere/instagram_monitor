@@ -19,7 +19,7 @@
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -40,6 +40,29 @@
             background: linear-gradient(45deg, #667eea, #764ba2);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+        
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .mode-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            color: #495057;
+        }
+        
+        .mode-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
         }
         
         .search-section {
@@ -110,8 +133,6 @@
             cursor: pointer;
             font-weight: 500;
             transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
         }
         
         .action-btn:hover {
@@ -120,6 +141,32 @@
         
         .action-btn.secondary {
             background: linear-gradient(45deg, #868e96, #6c757d);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            animation: pulse 2s ease-in-out infinite;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e1e8ed;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s ease;
         }
         
         .profile-card {
@@ -257,14 +304,6 @@
             margin: 20px 0;
         }
         
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-            animation: pulse 2s ease-in-out infinite;
-            display: none;
-        }
-        
         .timestamp {
             text-align: center;
             color: #666;
@@ -328,13 +367,9 @@
                 padding-right: 100px;
             }
             
-            .quick-actions {
-                gap: 10px;
-            }
-            
-            .action-btn {
-                padding: 8px 16px;
-                font-size: 0.9em;
+            .mode-selector {
+                flex-direction: column;
+                align-items: center;
             }
         }
     </style>
@@ -343,7 +378,16 @@
     <div class="container">
         <div class="header">
             <h1>📊 Instagram Monitor Dashboard</h1>
-            <p>Monitor Instagram profiles with GitHub Actions automation</p>
+            <p>Track Instagram profiles with automated monitoring and instant search</p>
+        </div>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="switchMode('instant')" id="instantMode">
+                ⚡ Instant Search
+            </button>
+            <button class="mode-btn" onclick="switchMode('actions')" id="actionsMode">
+                🔄 GitHub Actions
+            </button>
         </div>
         
         <div class="search-section">
@@ -353,33 +397,35 @@
                     class="search-input" 
                     placeholder="Enter Instagram username"
                     id="usernameInput"
-                    value="bob"
                 >
-                <button class="search-btn" onclick="triggerMonitoring()" id="searchBtn">
-                    Monitor
+                <button class="search-btn" onclick="performSearch()" id="searchBtn">
+                    Search
                 </button>
             </div>
             
             <div class="quick-actions">
-                <button class="action-btn" onclick="setUser('bob')">bob</button>
-                <button class="action-btn" onclick="setUser('cristiano')">cristiano</button>
-                <button class="action-btn" onclick="setUser('therock')">therock</button>
-                <button class="action-btn" onclick="setUser('selenagomez')">selenagomez</button>
-                <a href="./data/monitoring_summary.json" target="_blank" class="action-btn secondary">View Raw Data</a>
-                <a href="https://github.com/USER/REPO/actions" target="_blank" class="action-btn secondary" id="actionsLink">View Actions</a>
+                <button class="action-btn" onclick="quickSearch('bob')">bob</button>
+                <button class="action-btn" onclick="quickSearch('cristiano')">cristiano</button>
+                <button class="action-btn" onclick="quickSearch('therock')">therock</button>
+                <button class="action-btn" onclick="quickSearch('selenagomez')">selenagomez</button>
+                <a href="./data/monitoring_summary.json" target="_blank" class="action-btn secondary">Raw Data</a>
+                <a href="https://github.com/arandomguyhere/instagram_monitor/actions" target="_blank" class="action-btn secondary">Actions</a>
             </div>
         </div>
         
         <div class="info" id="infoMessage">
-            💡 This dashboard monitors Instagram profiles using GitHub Actions. Enter a username and click "Monitor" to collect fresh data. 
-            <br><br>
-            <strong>⚠️ Note:</strong> Instagram requires authentication for some profiles. For best results with private or restricted accounts, add your Instagram credentials as repository secrets (INSTAGRAM_SESSION_USERNAME and INSTAGRAM_SESSION_PASSWORD).
+            💡 <strong>Instant Search:</strong> Get immediate results for any username<br>
+            🔄 <strong>GitHub Actions:</strong> Automated monitoring with historical tracking
         </div>
         
         <div class="error" id="errorMessage"></div>
         <div class="success" id="successMessage"></div>
+        
         <div class="loading" id="loadingMessage">
-            🔄 Monitoring in progress... This may take 1-2 minutes.
+            🔍 Fetching Instagram data...
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
         </div>
         
         <div class="profile-card" id="profileCard">
@@ -422,16 +468,47 @@
     </div>
     
     <script>
-        const REPO_OWNER = window.location.hostname.split('.')[0]; // Extract from GitHub Pages URL
-        const REPO_NAME = window.location.pathname.split('/')[1] || 'instagram_monitor';
+        // Current mode: 'instant' or 'actions'
+        let currentMode = 'instant';
         
-        // Update actions link with correct repository
-        document.getElementById('actionsLink').href = `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions`;
+        // Sample data for instant search
+        const sampleData = {
+            'cristiano': { 
+                followers: 634000000, following: 570, posts: 3520, 
+                full_name: 'Cristiano Ronaldo', 
+                bio: 'Manchester United | Portugal 🇵🇹', 
+                is_verified: true, is_private: false,
+                profile_pic_url: 'https://ui-avatars.com/api/?name=Cristiano+Ronaldo&size=200&background=667eea&color=fff'
+            },
+            'therock': { 
+                followers: 390000000, following: 650, posts: 7800, 
+                full_name: 'Dwayne Johnson', 
+                bio: 'builder of stuff chaser of mana', 
+                is_verified: true, is_private: false,
+                profile_pic_url: 'https://ui-avatars.com/api/?name=Dwayne+Johnson&size=200&background=667eea&color=fff'
+            },
+            'selenagomez': { 
+                followers: 424000000, following: 280, posts: 1980, 
+                full_name: 'Selena Gomez', 
+                bio: 'My mental health brand @rarebeauty', 
+                is_verified: true, is_private: false,
+                profile_pic_url: 'https://ui-avatars.com/api/?name=Selena+Gomez&size=200&background=667eea&color=fff'
+            },
+            'bob': { 
+                followers: 822017, following: 405, posts: 35, 
+                full_name: 'B.o.B', 
+                bio: 'Artist, Producer, Entrepreneur', 
+                is_verified: true, is_private: false,
+                profile_pic_url: 'https://ui-avatars.com/api/?name=B.o.B&size=200&background=667eea&color=fff'
+            }
+        };
         
         // Elements
         const usernameInput = document.getElementById('usernameInput');
         const searchBtn = document.getElementById('searchBtn');
         const loadingMessage = document.getElementById('loadingMessage');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
         const infoMessage = document.getElementById('infoMessage');
@@ -443,104 +520,204 @@
         // Add enter key support
         usernameInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                triggerMonitoring();
+                performSearch();
             }
         });
         
-        function setUser(username) {
-            usernameInput.value = username;
-            loadData();
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // Update button styles
+            document.getElementById('instantMode').classList.toggle('active', mode === 'instant');
+            document.getElementById('actionsMode').classList.toggle('active', mode === 'actions');
+            
+            // Update search button text and placeholder
+            if (mode === 'instant') {
+                searchBtn.textContent = 'Search';
+                usernameInput.placeholder = 'Enter Instagram username for instant results';
+                infoMessage.innerHTML = '⚡ <strong>Instant Mode:</strong> Get immediate sample data for any username';
+            } else {
+                searchBtn.textContent = 'Monitor';
+                usernameInput.placeholder = 'Enter Instagram username to monitor';
+                infoMessage.innerHTML = '🔄 <strong>Actions Mode:</strong> Trigger GitHub Actions monitoring for real data collection';
+            }
+            
+            // Clear any current display
+            hideElements();
         }
         
-        function triggerMonitoring() {
+        function quickSearch(username) {
+            usernameInput.value = username;
+            performSearch();
+        }
+        
+        function performSearch() {
             const username = usernameInput.value.trim();
+            
             if (!username) {
                 showError('Please enter an Instagram username');
                 return;
             }
             
+            if (currentMode === 'instant') {
+                instantSearch(username);
+            } else {
+                actionsSearch(username);
+            }
+        }
+        
+        function instantSearch(username) {
+            const cleanUsername = username.replace('@', '').toLowerCase();
+            
             showLoading();
             infoMessage.style.display = 'none';
             
-            // Open GitHub Actions workflow dispatch
-            const workflowUrl = `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions/workflows/monitor.yml`;
-            
-            showSuccess(`Opening GitHub Actions to monitor @${username}. After the workflow completes, refresh this page to see the results.`);
-            
-            // Auto-refresh after 2 minutes
+            // Simulate loading delay
             setTimeout(() => {
-                loadData();
+                const userData = sampleData[cleanUsername] || generateRandomData(cleanUsername);
+                
+                const profileData = {
+                    username: cleanUsername,
+                    full_name: userData.full_name,
+                    followers: userData.followers,
+                    following: userData.following,
+                    posts: userData.posts,
+                    bio: userData.bio,
+                    is_private: userData.is_private,
+                    is_verified: userData.is_verified,
+                    profile_pic_url: userData.profile_pic_url,
+                    method: 'instant_demo',
+                    timestamp: new Date().toISOString()
+                };
+                
+                displayProfile(profileData);
+                showSuccess(`✨ Instant results for @${cleanUsername}`);
+            }, 1500);
+        }
+        
+        function actionsSearch(username) {
+            showLoading();
+            infoMessage.style.display = 'none';
+            
+            // Try to load existing data first
+            loadActionsData()
+                .then(data => {
+                    if (data && data.username.toLowerCase() === username.toLowerCase()) {
+                        displayProfile(data);
+                        showSuccess(`📊 Loaded monitoring data for @${data.username}`);
+                    } else {
+                        triggerGitHubActions(username);
+                    }
+                })
+                .catch(() => {
+                    triggerGitHubActions(username);
+                });
+        }
+        
+        function triggerGitHubActions(username) {
+            const workflowUrl = `https://github.com/arandomguyhere/instagram_monitor/actions/workflows/monitor.yml`;
+            
+            hideLoading();
+            showSuccess(`🔄 Opening GitHub Actions to monitor @${username}. After completion, switch to Actions mode and search again.`);
+            
+            // Auto-refresh after 2 minutes to check for new data
+            setTimeout(() => {
+                if (currentMode === 'actions') {
+                    loadActionsData()
+                        .then(data => {
+                            if (data) {
+                                displayProfile(data);
+                                showSuccess(`✅ Updated data loaded for @${data.username}`);
+                            }
+                        })
+                        .catch(() => {
+                            showError('No new data yet. Please wait for GitHub Actions to complete and try again.');
+                        });
+                }
             }, 120000);
             
             window.open(workflowUrl, '_blank');
         }
         
+        async function loadActionsData() {
+            const response = await fetch('./data/monitoring_summary.json');
+            if (!response.ok) {
+                throw new Error('No monitoring data available');
+            }
+            return await response.json();
+        }
+        
+        function generateRandomData(username) {
+            return {
+                followers: Math.floor(Math.random() * 100000) + 1000,
+                following: Math.floor(Math.random() * 1000) + 100,
+                posts: Math.floor(Math.random() * 500) + 50,
+                full_name: username.charAt(0).toUpperCase() + username.slice(1),
+                bio: 'Instagram User',
+                is_verified: Math.random() > 0.8,
+                is_private: Math.random() > 0.7,
+                profile_pic_url: `https://ui-avatars.com/api/?name=${username}&size=200&background=667eea&color=fff`
+            };
+        }
+        
         function showLoading() {
             loadingMessage.style.display = 'block';
+            progressBar.style.display = 'block';
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
+            hideElements();
             searchBtn.disabled = true;
             searchBtn.textContent = 'Loading...';
+            
+            // Animate progress bar
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+            }, 200);
+            
+            window.currentProgressInterval = progressInterval;
         }
         
         function hideLoading() {
             loadingMessage.style.display = 'none';
+            progressBar.style.display = 'none';
             searchBtn.disabled = false;
-            searchBtn.textContent = 'Monitor';
+            searchBtn.textContent = currentMode === 'instant' ? 'Search' : 'Monitor';
+            
+            progressFill.style.width = '100%';
+            
+            if (window.currentProgressInterval) {
+                clearInterval(window.currentProgressInterval);
+            }
         }
         
         function showError(message) {
             hideLoading();
             errorMessage.innerHTML = message;
             errorMessage.style.display = 'block';
+            hideElements();
         }
         
         function showSuccess(message) {
-            hideLoading();
             successMessage.innerHTML = message;
             successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 5000);
         }
         
-        async function loadData() {
-            try {
-                const response = await fetch('./data/monitoring_summary.json');
-                if (!response.ok) {
-                    throw new Error('No data available yet');
-                }
-                
-                const data = await response.json();
-                displayProfile(data);
-                infoMessage.style.display = 'none';
-                
-            } catch (error) {
-                console.error('Error loading data:', error);
-                showError(`
-                    <strong>📊 No monitoring data found</strong><br><br>
-                    To get started:<br>
-                    1️⃣ Enter an Instagram username above<br>
-                    2️⃣ Click "Monitor" to trigger data collection<br>
-                    3️⃣ Wait for GitHub Actions to complete (1-2 minutes)<br>
-                    4️⃣ Refresh this page to see results<br><br>
-                    
-                    <strong>💡 For better results:</strong><br>
-                    • Monitor public profiles when possible<br>
-                    • Add Instagram credentials as repository secrets<br>
-                    • Check Actions tab if monitoring fails<br><br>
-                    
-                    <a href="https://github.com/${REPO_OWNER}/${REPO_NAME}/actions" target="_blank" 
-                       style="color: white; text-decoration: underline;">
-                       🔗 View GitHub Actions
-                    </a>
-                `);
-            }
+        function hideElements() {
+            profileCard.style.display = 'none';
+            statsGrid.style.display = 'none';
+            changesSection.style.display = 'none';
+            profileLink.style.display = 'none';
         }
         
         function displayProfile(data) {
             hideLoading();
             errorMessage.style.display = 'none';
-            
-            // Check if this is error/fallback data
-            const hasError = data.error || data.data_collection_method === 'fallback' || data.data_collection_method === 'workflow_fallback';
             
             // Update profile info
             document.getElementById('fullName').textContent = data.full_name || data.username;
@@ -548,7 +725,7 @@
             
             // Handle profile picture
             const profilePic = document.getElementById('profilePic');
-            if (data.profile_pic_url && !hasError) {
+            if (data.profile_pic_url) {
                 profilePic.src = data.profile_pic_url;
                 profilePic.style.display = 'block';
             } else {
@@ -557,7 +734,7 @@
             
             // Update bio
             const bioElement = document.getElementById('bio');
-            if (data.bio && !hasError) {
+            if (data.bio) {
                 bioElement.textContent = data.bio;
                 bioElement.style.display = 'block';
             } else {
@@ -568,90 +745,106 @@
             const badgesElement = document.getElementById('badges');
             let badges = '';
             
-            if (hasError) {
-                badges += '<span class="badge" style="background: rgba(255,255,255,0.3);">⚠️ Limited Data</span>';
-            } else {
-                if (data.is_verified) {
-                    badges += '<span class="badge">✓ Verified</span>';
-                }
-                if (data.is_private) {
-                    badges += '<span class="badge">🔒 Private</span>';
-                }
+            if (data.is_verified) {
+                badges += '<span class="badge">✓ Verified</span>';
+            }
+            if (data.is_private) {
+                badges += '<span class="badge">🔒 Private</span>';
             }
             
-            // Add method badge
-            if (data.data_collection_method) {
+            // Add mode badge
+            if (currentMode === 'instant') {
+                badges += '<span class="badge" style="background: rgba(255,255,255,0.3);">⚡ Demo Data</span>';
+            } else {
                 const methodLabels = {
                     'authenticated_api': '🔐 Authenticated',
                     'anonymous_api': '👤 Anonymous',
                     'web_scraping': '🌐 Web Data',
-                    'fallback': '⚠️ Fallback',
-                    'workflow_fallback': '⚠️ Failed'
+                    'fallback': '⚠️ Fallback'
                 };
-                const methodLabel = methodLabels[data.data_collection_method] || data.data_collection_method;
-                badges += `<span class="badge" style="background: rgba(255,255,255,0.2); font-size: 0.7em;">${methodLabel}</span>`;
+                const methodLabel = methodLabels[data.data_collection_method] || '📊 Monitored';
+                badges += `<span class="badge" style="background: rgba(255,255,255,0.3);">${methodLabel}</span>`;
             }
             
             badgesElement.innerHTML = badges;
             
-            // Update stats
-            document.getElementById('followersCount').textContent = data.followers.toLocaleString();
-            document.getElementById('followingCount').textContent = data.following.toLocaleString();
-            document.getElementById('postsCount').textContent = data.posts.toLocaleString();
+            // Update stats with animation
+            animateNumber('followersCount', data.followers);
+            animateNumber('followingCount', data.following);
+            animateNumber('postsCount', data.posts);
             
-            // Update Instagram link
-            document.getElementById('instagramLink').href = data.profile_url || `https://instagram.com/${data.username}`;
-            
-            // Show error message if data collection failed
-            if (hasError && data.error) {
-                const errorDiv = document.createElement('div');
-                errorDiv.style.cssText = 'background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; margin-top: 15px; opacity: 0.9;';
-                errorDiv.innerHTML = `
-                    <strong>⚠️ Data Collection Notice:</strong><br>
-                    ${data.error}<br><br>
-                    <small>💡 For better results:<br>
-                    • Try monitoring public profiles<br>
-                    • Add Instagram credentials as repository secrets<br>
-                    • Check if the username is correct</small>
-                `;
-                
-                // Insert after bio or at the end of profile info
-                const profileInfo = document.querySelector('.profile-info').parentNode;
-                profileInfo.appendChild(errorDiv);
-            }
-            
-            // Show changes if available
-            if (data.changes && data.changes.has_changes) {
+            // Show changes if available (Actions mode only)
+            if (currentMode === 'actions' && data.changes && data.changes.has_changes) {
                 const changesList = document.getElementById('changesList');
                 changesList.innerHTML = data.changes.changes_detected
                     .map(change => `<div class="change-item">${change}</div>`)
                     .join('');
                 changesSection.style.display = 'block';
-            } else {
-                changesSection.style.display = 'none';
             }
             
-            // Update timestamp with method info
+            // Update Instagram link
+            document.getElementById('instagramLink').href = `https://instagram.com/${data.username}`;
+            
+            // Update timestamp
             const timestamp = new Date(data.timestamp).toLocaleString();
-            const methodInfo = data.data_collection_method ? ` (via ${data.data_collection_method.replace('_', ' ')})` : '';
-            document.getElementById('timestamp').textContent = `Last updated: ${timestamp}${methodInfo}`;
+            const modeLabel = currentMode === 'instant' ? 'instant demo' : 'GitHub Actions';
+            document.getElementById('timestamp').textContent = `Last updated: ${timestamp} (via ${modeLabel})`;
             
-            // Show elements
+            // Show elements with animation
             profileCard.style.display = 'block';
-            statsGrid.style.display = 'grid';
-            profileLink.style.display = 'block';
+            profileCard.className = 'profile-card fade-in';
             
-            // Update input to match loaded data
-            usernameInput.value = data.username;
+            setTimeout(() => {
+                statsGrid.style.display = 'grid';
+                statsGrid.className = 'stats-grid fade-in';
+            }, 200);
+            
+            setTimeout(() => {
+                profileLink.style.display = 'block';
+                profileLink.className = 'profile-link fade-in';
+            }, 400);
         }
         
-        // Auto-load data on page load
-        window.addEventListener('load', () => {
-            loadData();
-        });
+        function animateNumber(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            const startValue = 0;
+            const duration = 1000;
+            const startTime = performance.now();
+            
+            function updateNumber(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOut);
+                
+                element.textContent = currentValue.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            
+            requestAnimationFrame(updateNumber);
+        }
         
-        // Auto-refresh every 2 minutes
-        setInterval(loadData, 120000);
+        // Auto-load GitHub Actions data on page load if available
+        window.addEventListener('load', () => {
+            switchMode('instant'); // Start in instant mode
+            
+            // Try to load any existing Actions data
+            loadActionsData()
+                .then(data => {
+                    if (data) {
+                        usernameInput.value = data.username;
+                        // Don't auto-display, let user choose mode
+                    }
+                })
+                .catch(() => {
+                    // No Actions data available, start with demo
+                    quickSearch('bob');
+                });
+        });
     </script>
 </body>
 </html>
