@@ -1,12 +1,12 @@
 {
   "username": "therock",
-  "followers": 0,
-  "following": 0,
-  "posts": 0,
-  "last_updated": "2025-08-09T23:47:09.318810+00:00",
-  "is_private": true,
-  "is_verified": false,
-  "method": "fallback",
-  "profile_pic_url": "",
+  "followers": 392939294,
+  "following": 174,
+  "posts": 8133,
+  "last_updated": "2025-08-09T23:49:14.802560+00:00",
+  "is_private": false,
+  "is_verified": true,
+  "method": "anonymous_api",
+  "profile_pic_url": "https://scontent-iad3-1.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QE8nVTJx1c2cM6yaO0T5hi-fsMysLvLivdtgXpeYnriSHWfWwbqK-YMjD1KlZ8VF5c&_nc_ohc=sN5O6rYW_NoQ7kNvwGMXU2H&_nc_gid=Z_28Hbf_9Q_9wwzg6G5RFA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfWSAtzBnGmbQc8ybLnwPwse0781GWxODKhpqZMsq3X4wA&oe=689DAF84&_nc_sid=8b3546",
   "profile_pic_url_hd": ""
 }
