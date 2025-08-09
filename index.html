@@ -16,12 +16,25 @@
     .title{font-weight:600; color:#9db2c5; font-size:12px; letter-spacing:.4px; text-transform:uppercase}
     .num{font-size:34px; font-weight:700; margin-top:6px}
     .row{display:flex; gap:14px; align-items:center; margin-top:12px}
-    .chip{padding:6px 10px; border-radius:999px; border:1px solid #1c2a3b; background:#0f1622; color:#cfe2f2; cursor:pointer}
-    .input{flex:1; background:#0f1622; border:1px solid #1c2a3b; color:#cfe2f2; padding:10px 12px; border-radius:10px}
-    button{background:#1f6feb; color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer}
+    .chip{padding:6px 10px; border-radius:999px; border:1px solid #1c2a3b; background:#0f1622; color:#cfe2f2; cursor:pointer; transition:all 0.2s ease}
+    .chip:hover{background:#1a2230; border-color:#2a4a5c}
+    .input{flex:1; background:#0f1622; border:1px solid #1c2a3b; color:#cfe2f2; padding:10px 12px; border-radius:10px; transition:border-color 0.2s ease}
+    .input:focus{outline:none; border-color:#1f6feb}
+    button{background:#1f6feb; color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer; transition:background 0.2s ease}
+    button:hover{background:#0969da}
+    button:disabled{background:#656d76; cursor:not-allowed}
     .muted{color:#9db2c5; font-size:12px}
     .verified{display:none}
-    a{color:#8ab4ff}
+    a{color:#8ab4ff; text-decoration:none}
+    a:hover{text-decoration:underline}
+    .loading{opacity:0.6; pointer-events:none}
+    @media (max-width: 600px) {
+      .wrap{margin:20px auto; padding:0 12px}
+      header{flex-direction:column; align-items:stretch; gap:12px}
+      .grid{grid-template-columns:1fr; gap:10px}
+      .row{flex-wrap:wrap}
+      .chip{font-size:11px; padding:5px 8px}
+    }
   </style>
 </head>
 <body>
@@ -35,13 +48,13 @@
           <h1 id="name" style="margin:0 0 6px 0;">Instagram Monitor</h1>
           <div class="muted">
             <span id="username">@username</span>
-            <span id="verifiedBadge" class="badge verified">Verified</span>
+            <span id="verifiedBadge" class="badge verified" style="background:#0969da; color:white">✓ Verified</span>
           </div>
         </div>
       </div>
       <div class="badges">
         <span id="methodBadge" class="badge">unknown</span>
-        <span id="demoBadge" class="badge">Demo Data</span>
+        <span id="demoBadge" class="badge" style="background:#fd7e14; color:white">Demo Data</span>
       </div>
     </header>
 
@@ -55,6 +68,7 @@
       <button class="chip" data-user="cristiano">cristiano</button>
       <button class="chip" data-user="selenagomez">selenagomez</button>
       <button class="chip" data-user="taylorswift">taylorswift</button>
+      <button class="chip" data-user="kimkardashian">kimkardashian</button>
       <a id="rawDataLink" class="chip" href="#" target="_blank" rel="noopener">Raw Data</a>
     </div>
 
@@ -73,9 +87,10 @@
       </div>
     </div>
 
-    <div class="muted" style="margin-top:16px">
+    <div class="muted" style="margin-top:16px; text-align:center">
       Last updated: <span id="lastUpdated">—</span> •
-      Profile: <a id="profileLink" href="#" target="_blank" rel="noopener">open</a>
+      Profile: <a id="profileLink" href="#" target="_blank" rel="noopener">open on Instagram</a> •
+      <a href="https://github.com/arandomguyhere/instagram_monitor/actions" target="_blank" rel="noopener">Monitor Actions</a>
     </div>
   </div>
 
@@ -105,13 +120,19 @@
         d.__source = 'summary';
         return d;
       } catch {}
-      const q = await fetchJson(`${base}/quick_stats.json${ts}`);
-      q.__source = 'quick';
-      // normalize fields used by render()
-      q.timestamp = q.last_updated || null;
-      q.profile_url = q.profile_url || `https://instagram.com/${q.username}`;
-      q.data_collection_method = q.method || 'unknown';
-      return q;
+      
+      try {
+        const q = await fetchJson(`${base}/quick_stats.json${ts}`);
+        q.__source = 'quick';
+        // normalize fields used by render()
+        q.timestamp = q.last_updated || null;
+        q.profile_url = q.profile_url || `https://instagram.com/${q.username}`;
+        q.data_collection_method = q.method || 'unknown';
+        return q;
+      } catch {}
+      
+      // If both fail, throw to trigger fallback
+      throw new Error('No data found');
     }
 
     function render(d){
@@ -129,49 +150,111 @@
       const pic = d.profile_pic_url_hd || d.profile_pic_url || 'assets/instagram_profile_pic_empty.jpeg';
       const img = $('#avatar');
       if (img) {
-        img.onerror = () => { img.onerror = null; img.src = 'assets/instagram_profile_pic_empty.jpeg'; };
+        img.onerror = () => { 
+          img.onerror = null; 
+          img.src = 'assets/instagram_profile_pic_empty.jpeg'; 
+        };
         img.src = pic + (pic.includes('?') ? '&' : '?') + 'ts=' + Date.now();
       }
 
       const method = d.data_collection_method || d.method || 'unknown';
-      txt('#methodBadge', method.replace('_',' '));
+      txt('#methodBadge', method.replace(/_/g,' '));
       show('#verifiedBadge', !!d.is_verified);
       show('#demoBadge', false);
 
       // Raw Data link points to the file actually used
       const raw = $('#rawDataLink');
-      if (raw) raw.href = `${BASE}/data/${encodeURIComponent(d.username)}/${d.__source === 'summary' ? 'monitoring_summary.json' : 'quick_stats.json'}`;
+      if (raw) {
+        const filename = d.__source === 'summary' ? 'monitoring_summary.json' : 'quick_stats.json';
+        raw.href = `${BASE}/data/${encodeURIComponent(d.username)}/${filename}`;
+      }
+    }
+
+    function renderFallback(user) {
+      show('#demoBadge', true);
+      txt('#name', 'No Data Available');
+      txt('#username', '@' + user);
+      txt('#followers','—'); 
+      txt('#following','—'); 
+      txt('#posts','—');
+      txt('#lastUpdated','—');
+      
+      const link = $('#profileLink'); 
+      if (link) link.href = `https://instagram.com/${user}`;
+      
+      const img = $('#avatar'); 
+      if (img) {
+        img.onerror = null;
+        img.src = 'assets/instagram_profile_pic_empty.jpeg';
+      }
+      
+      txt('#methodBadge','no data');
+      show('#verifiedBadge', false);
+      
+      const raw = $('#rawDataLink'); 
+      if (raw) raw.href = `${BASE}/data/${encodeURIComponent(user)}/quick_stats.json`;
     }
 
     async function showUser(user){
       if (!user) return;
-      $('#searchInput').value = user;
+      
+      const searchInput = $('#searchInput');
+      const searchBtn = $('#searchBtn');
+      const wrap = $('.wrap');
+      
+      if (searchInput) searchInput.value = user;
+      if (searchBtn) searchBtn.disabled = true;
+      if (wrap) wrap.classList.add('loading');
+      
       try {
         const data = await loadProfile(user);
         render(data);
-      } catch (e){
-        console.warn('Fetch failed:', e);
-        show('#demoBadge', true);
-        txt('#name', 'Demo / Not Found');
-        txt('#username', '@' + user);
-        txt('#followers','0'); txt('#following','0'); txt('#posts','0');
-        txt('#lastUpdated','—');
-        const link = $('#profileLink'); if (link) link.href = `https://instagram.com/${user}`;
-        const img = $('#avatar'); if (img) img.src = 'assets/instagram_profile_pic_empty.jpeg';
-        txt('#methodBadge','fallback');
-        const raw = $('#rawDataLink'); if (raw) raw.href = `${BASE}/data/${encodeURIComponent(user)}/quick_stats.json`;
+        console.log(`✅ Loaded data for @${user} from ${data.__source}`);
+      } catch (e) {
+        console.warn(`⚠️ No data found for @${user}:`, e.message);
+        renderFallback(user);
+      } finally {
+        if (searchBtn) searchBtn.disabled = false;
+        if (wrap) wrap.classList.remove('loading');
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      $('#searchBtn')?.addEventListener('click', () => showUser(($('#searchInput').value||'').trim()));
-      $('#searchInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('#searchBtn').click(); });
-      document.querySelectorAll('[data-user]').forEach(el=>{
-        el.addEventListener('click', ()=>showUser(el.getAttribute('data-user')));
+    function initializeApp() {
+      // Search button click
+      $('#searchBtn')?.addEventListener('click', () => {
+        const input = $('#searchInput');
+        const user = (input?.value || '').trim().replace('@', '');
+        if (user) showUser(user);
       });
-      const initial = (new URLSearchParams(location.search)).get('u') || 'therock';
+      
+      // Enter key in search input
+      $('#searchInput')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          $('#searchBtn')?.click();
+        }
+      });
+      
+      // Quick search chips
+      document.querySelectorAll('[data-user]').forEach(el => {
+        el.addEventListener('click', () => {
+          const user = el.getAttribute('data-user');
+          if (user) showUser(user);
+        });
+      });
+      
+      // Load initial user from URL or default
+      const urlParams = new URLSearchParams(location.search);
+      const initial = urlParams.get('u') || urlParams.get('user') || 'therock';
       showUser(initial);
-    });
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
   </script>
 </body>
 </html>
