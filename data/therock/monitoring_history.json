@@ -7,8 +7,16 @@
       "posts": 0,
       "is_private": false,
       "method": "web_scraping"
+    },
+    {
+      "timestamp": "2025-08-09T23:06:37.150009+00:00",
+      "followers": 392939402,
+      "following": 174,
+      "posts": 8133,
+      "is_private": false,
+      "method": "anonymous_api"
     }
   ],
   "username": "therock",
-  "last_updated": "2025-08-09T23:04:06.439702+00:00"
+  "last_updated": "2025-08-09T23:06:37.150009+00:00"
 }
