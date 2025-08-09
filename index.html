@@ -14,7 +14,7 @@
     .card{background:#0f1622; border:1px solid #1c2a3b; border-radius:16px; padding:16px}
     .title{font-weight:600; color:#9db2c5; font-size:12px; letter-spacing:.4px; text-transform:uppercase}
     .num{font-size:34px; font-weight:700; margin-top:6px}
-    .row{display:flex; gap:12px; align-items:center; margin-top:12px}
+    .row{display:flex; gap:14px; align-items:center; margin-top:12px}
     .chip{padding:6px 10px; border-radius:999px; border:1px solid #1c2a3b; background:#0f1622; color:#cfe2f2; cursor:pointer}
     .input{flex:1; background:#0f1622; border:1px solid #1c2a3b; color:#cfe2f2; padding:10px 12px; border-radius:10px}
     button{background:#1f6feb; color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer}
@@ -25,9 +25,17 @@
 <body>
   <div class="wrap">
     <header>
-      <div>
-        <h1 id="name" style="margin:0 0 6px 0;">Instagram Monitor</h1>
-        <div class="muted"><span id="username">@username</span> <span id="verifiedBadge" class="badge verified">Verified</span></div>
+      <div class="row">
+        <img id="avatar" alt="avatar" width="64" height="64"
+             style="border-radius:50%; border:1px solid #1c2a3b; background:#0f1622; object-fit:cover"
+             referrerpolicy="no-referrer" />
+        <div>
+          <h1 id="name" style="margin:0 0 6px 0;">Instagram Monitor</h1>
+          <div class="muted">
+            <span id="username">@username</span>
+            <span id="verifiedBadge" class="badge verified">Verified</span>
+          </div>
+        </div>
       </div>
       <div class="badges">
         <span id="methodBadge" class="badge">unknown</span>
@@ -63,13 +71,14 @@
     </div>
 
     <div class="muted" style="margin-top:16px">
-      Last updated: <span id="lastUpdated">—</span> • Profile: <a id="profileLink" href="#" target="_blank" rel="noopener">open</a>
+      Last updated: <span id="lastUpdated">—</span> • Profile:
+      <a id="profileLink" href="#" target="_blank" rel="noopener">open</a>
     </div>
   </div>
 
   <script>
-  // Base path for project Pages (e.g., /instagram_monitor)
-  const BASE = location.pathname.split('/').slice(0,2).join('/'); // "" on user site, "/instagram_monitor" on project site
+  // Base path for project pages at repo root (e.g., /instagram_monitor) or user site ("")
+  const BASE = location.pathname.split('/').slice(0,2).join('/');
 
   const $  = (q) => document.querySelector(q);
   const txt = (q, v) => { const el=$(q); if (el) el.textContent = v; };
@@ -90,7 +99,15 @@
     txt('#following', fmt(d.following));
     txt('#posts', fmt(d.posts));
     txt('#lastUpdated', d.timestamp ? new Date(d.timestamp).toLocaleString() : '—');
-    const link = $('#profileLink'); if (link) link.href = d.profile_url || `https://instagram.com/${d.username}`;
+
+    const link = $('#profileLink');
+    if (link) link.href = d.profile_url || `https://instagram.com/${d.username}`;
+
+    // Avatar: prefer HD, then normal, else local placeholder
+    const pic = d.profile_pic_url_hd || d.profile_pic_url || 'instagram_profile_pic_empty.jpeg';
+    const img = $('#avatar');
+    if (img) img.src = pic + (pic.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+
     const method = d.data_collection_method || d.method || 'unknown';
     txt('#methodBadge', method.replace('_',' '));
     show('#verifiedBadge', !!d.is_verified);
@@ -110,6 +127,7 @@
       txt('#followers', '0'); txt('#following', '0'); txt('#posts', '0');
       txt('#lastUpdated', '—');
       const link = $('#profileLink'); if (link) link.href = `https://instagram.com/${user}`;
+      const img = $('#avatar'); if (img) img.src = 'instagram_profile_pic_empty.jpeg';
       show('#verifiedBadge', false);
       txt('#methodBadge', 'fallback');
     }
