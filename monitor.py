@@ -172,7 +172,7 @@ def try_web_scraping_method(username: str) -> dict | None:
             except json.JSONDecodeError:
                 pass
 
-        # Regex fallbacks for counts and other fields
+        # Regex fallbacks
         followers_match = re.search(r'"edge_followed_by":{"count":(\d+)}', html_content)
         following_match = re.search(r'"edge_follow":{"count":(\d+)}', html_content)
         posts_match = re.search(r'"edge_owner_to_timeline_media":{"count":(\d+)}', html_content)
@@ -201,6 +201,7 @@ def try_web_scraping_method(username: str) -> dict | None:
             "is_private": is_private,
             "is_verified": is_verified,
             "profile_pic_url": profile_pic_url,
+            "profile_pic_url_hd": profile_pic_url,  # scraping rarely gives HD; reuse if present
             "method": "web_scraping",
         }
 
@@ -263,10 +264,11 @@ def try_instaloader_with_session(username: str) -> dict | None:
             "is_private": profile.is_private,
             "is_verified": bool(getattr(profile, "is_verified", False)),
             "profile_pic_url": str(profile.profile_pic_url) if getattr(profile, "profile_pic_url", None) else "",
+            "profile_pic_url_hd": str(getattr(profile, "profile_pic_url_hd", "")) or "",
             "method": "authenticated_api",
         }
 
-        # Optional enrich (best-effort, safe in try/except)
+        # Optional enrich
         try:
             profile_data["external_url"] = getattr(profile, "external_url", None)
             if profile.mediacount:
@@ -302,6 +304,7 @@ def try_instaloader_anonymous(username: str) -> dict | None:
             "is_private": profile.is_private,
             "is_verified": bool(getattr(profile, "is_verified", False)),
             "profile_pic_url": str(profile.profile_pic_url) if getattr(profile, "profile_pic_url", None) else "",
+            "profile_pic_url_hd": str(getattr(profile, "profile_pic_url_hd", "")) or "",
             "method": "anonymous_api",
         }
 
@@ -340,9 +343,10 @@ def create_fallback_data(username: str) -> dict:
         "following": 0,
         "posts": 0,
         "bio": "",
-        "is_private": True,  # Assume private if we can't access
+        "is_private": True,
         "is_verified": False,
         "profile_pic_url": "",
+        "profile_pic_url_hd": "",
         "method": "fallback",
         "error": "Unable to access profile data - may be private or restricted",
     }
@@ -352,18 +356,15 @@ def create_fallback_data(username: str) -> dict:
 def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: int = 100) -> bool:
     """Fetch Instagram profile data using multiple methods with fallbacks"""
 
-    # Create output directory (we expect per-user dir to be passed from CI)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     summary_file = output_path / "monitoring_summary.json"
 
-    # Load historical data for change detection
     historical_data = load_historical_data(summary_file)
 
     logger.info(f"Fetching data for: {target_user}")
 
-    # Try multiple methods in order of preference
     profile_data = (
         try_instaloader_with_session(target_user)
         or try_instaloader_anonymous(target_user)
@@ -371,7 +372,6 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
         or create_fallback_data(target_user)
     )
 
-    # Add metadata to the profile data
     current_data = {
         **profile_data,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -385,15 +385,12 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
         "data_collection_method": profile_data.get("method", "unknown"),
     }
 
-    # Detect changes
     changes = detect_changes(current_data, historical_data)
     current_data["changes"] = changes
 
-    # Save main monitoring summary
     with open(summary_file, "w", encoding="utf-8") as f:
         json.dump(current_data, f, indent=2, ensure_ascii=False)
 
-    # Save historical tracking
     history_file = output_path / "monitoring_history.json"
     history_data = load_historical_data(history_file)
     if "entries" not in history_data:
@@ -415,7 +412,6 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
     with open(history_file, "w", encoding="utf-8") as f:
         json.dump(history_data, f, indent=2, ensure_ascii=False)
 
-    # Create quick stats
     stats_file = output_path / "quick_stats.json"
     quick_stats = {
         "username": current_data["username"],
@@ -426,12 +422,13 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
         "is_private": bool(current_data.get("is_private", False)),
         "is_verified": bool(current_data.get("is_verified", False)),
         "method": current_data.get("data_collection_method"),
+        "profile_pic_url": current_data.get("profile_pic_url", ""),
+        "profile_pic_url_hd": current_data.get("profile_pic_url_hd", ""),
     }
 
     with open(stats_file, "w", encoding="utf-8") as f:
         json.dump(quick_stats, f, indent=2, ensure_ascii=False)
 
-    # Log results
     logger.info("✅ Data collection completed successfully")
     logger.info(f"   Method used: {current_data['data_collection_method']}")
     logger.info(f"   Output directory: {output_path.absolute()}")
@@ -452,7 +449,6 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
     else:
         logger.info("   No changes detected since last run")
 
-    # List generated files
     logger.info("   Generated files:")
     for file in sorted(output_path.glob("*.json")):
         logger.info(f"     • {file.name}")
@@ -468,7 +464,7 @@ def main():
         epilog="""
 Examples:
   python monitor.py --target-user dominance.information
-  python monitor.py --target-user cristiano --output-dir ./docs/data/cristiano
+  python monitor.py --target-user cristiano --output-dir ./data/cristiano
 
 Environment Variables:
   INSTAGRAM_SESSION_USERNAME - Instagram username for authenticated access
@@ -481,7 +477,7 @@ Environment Variables:
         "--output-dir",
         default="./",
         help="Output directory for data files (default: current directory). "
-             "Pass a per-user path from CI, e.g. ./docs/data/<user>",
+             "Pass a per-user path from CI, e.g. ./data/<user>",
     )
     parser.add_argument(
         "--history-keep",
@@ -492,7 +488,6 @@ Environment Variables:
 
     args = parser.parse_args()
 
-    # Clean username (remove @ if present)
     clean_username = args.target_user.replace("@", "").strip()
     if not clean_username:
         logger.error("Invalid username provided")
@@ -501,27 +496,7 @@ Environment Variables:
     logger.info(f"Starting Instagram monitoring for: {clean_username}")
     logger.info(f"Output directory: {Path(args.output_dir).absolute()}")
 
-    # Check for authentication credentials
     if os.getenv("INSTAGRAM_SESSION_USERNAME"):
         logger.info("Authentication credentials found - will attempt authenticated access")
     else:
-        logger.info("No authentication credentials - will use anonymous/fallback methods")
-
-    try:
-        success = fetch_profile_data(clean_username, args.output_dir, args.history_keep)
-        if success:
-            logger.info("🎉 Instagram monitoring completed successfully!")
-        else:
-            logger.error("❌ Instagram monitoring failed")
-            sys.exit(1)
-
-    except KeyboardInterrupt:
-        logger.info("❌ Monitoring cancelled by user")
-        sys.exit(1)
-    except Exception as e:
-        logger.error(f"❌ Unexpected error: {e}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
+        logger.info("No authentication credentials - will use anonymous
