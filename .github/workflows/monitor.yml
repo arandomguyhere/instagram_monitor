@@ -1,129 +1,67 @@
-name: Instagram Monitor with Auth Handling
+name: Instagram Monitor
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
-      target_user:
-        description: 'Instagram username to monitor'
-        required: true
-        default: 'bob'
-        type: string
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+      users:
+        description: "Comma-separated usernames (no @)"
+        required: false
+        default: "therock"
+  schedule:
+    - cron: "0 */6 * * *"  # every 6 hours
 
 concurrency:
-  group: "pages"
+  group: instagram-monitor
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
-  monitor-and-deploy:
+  monitor:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
+    strategy:
+      fail-fast: false
+      matrix:
+        user: ${{ fromJson(format('["{0}"]', inputs.users != '' && inputs.users || 'therock')) }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install instaloader requests
-        
-    - name: Create data directory
-      run: mkdir -p data
-      
-    - name: Run Instagram Monitor
-      env:
-        INSTAGRAM_TARGET_USER: ${{ github.event.inputs.target_user || 'bob' }}
-        # Optional: Add these as repository secrets for authenticated access
-        # INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
-        # INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_PASSWORD }}
-      run: |
-        echo "🔍 Starting Instagram monitoring for: ${{ github.event.inputs.target_user || 'bob' }}"
-        
-        # Add some randomization to avoid rate limits
-        sleep_time=$(shuf -i 1-10 -n 1)
-        echo "⏳ Adding ${sleep_time}s delay to avoid rate limits..."
-        sleep $sleep_time
-        
-        # Run the monitor with error handling
-        python monitor.py --target-user "${{ github.event.inputs.target_user || 'bob' }}" --output-dir data || {
-          echo "⚠️  Primary monitoring failed, but continuing deployment..."
-          
-          # Create basic fallback data if monitoring completely fails
-          mkdir -p data
-          cat > data/monitoring_summary.json << EOF
-        {
-          "username": "${{ github.event.inputs.target_user || 'bob' }}",
-          "full_name": "${{ github.event.inputs.target_user || 'bob' }}",
-          "followers": 0,
-          "following": 0,
-          "posts": 0,
-          "bio": "",
-          "is_private": true,
-          "is_verified": false,
-          "profile_pic_url": "",
-          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-          "profile_url": "https://instagram.com/${{ github.event.inputs.target_user || 'bob' }}",
-          "data_collection_method": "workflow_fallback",
-          "error": "Data collection failed - profile may be private or restricted",
-          "changes": {
-            "has_changes": false,
-            "changes_detected": ["Monitoring failed - using fallback data"],
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
-          }
-        }
-        EOF
-          
-          echo "📄 Created fallback data file"
-        }
-        
-    - name: Verify data files
-      run: |
-        echo "📁 Generated files:"
-        ls -la data/ || echo "No data directory found"
-        
-        echo ""
-        echo "📊 Content preview:"
-        if [ -f data/monitoring_summary.json ]; then
-          echo "monitoring_summary.json exists ($(wc -c < data/monitoring_summary.json) bytes)"
-          # Show first few lines of the JSON
-          head -20 data/monitoring_summary.json
-        else
-          echo "❌ monitoring_summary.json not found"
-        fi
-        
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      
-    - name: Upload to GitHub Pages
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: '.'
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
-      
-    - name: Summary
-      run: |
-        echo "🎉 Deployment completed!"
-        echo "📊 Dashboard URL: ${{ steps.deployment.outputs.page_url }}"
-        echo "👤 Monitored user: ${{ github.event.inputs.target_user || 'bob' }}"
-        echo ""
-        echo "💡 Tips:"
-        echo "  • Refresh the dashboard to see new data"
-        echo "  • Add Instagram credentials as secrets for better access"
-        echo "  • Monitor public profiles for best results"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_SESSION_USERNAME }}  # optional
+          INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}  # optional
+          CI: "true"
+        run: |
+          USERNAME="${{ matrix.user }}"
+          OUT="docs/data/${USERNAME}"
+          mkdir -p "$OUT"
+          python monitor.py --target-user "$USERNAME" --output-dir "$OUT"
+
+      - name: Commit changes (if any)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update IG data for ${{ matrix.user }}"
+          file_pattern: docs/data/**/*.json
+          commit_user_name: github-actions[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          skip_dirty_check: false
