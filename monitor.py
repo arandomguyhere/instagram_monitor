@@ -19,7 +19,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 try:
-    from instaloader import Instaloader, Profile, ConnectionException
+    from instaloader import Instaloader, Profile
     from instaloader.exceptions import LoginRequiredException, ProfileNotExistsException
 except ImportError:
     print("Error: instaloader not found. Install with: pip install instaloader")
@@ -499,4 +499,23 @@ Environment Variables:
     if os.getenv("INSTAGRAM_SESSION_USERNAME"):
         logger.info("Authentication credentials found - will attempt authenticated access")
     else:
-        logger.info("No authentication credentials - will use anonymous
+        logger.info("No authentication credentials - will use anonymous mode.")
+
+    try:
+        success = fetch_profile_data(clean_username, args.output_dir, args.history_keep)
+        if success:
+            logger.info("🎉 Instagram monitoring completed successfully!")
+        else:
+            logger.error("❌ Instagram monitoring failed")
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        logger.info("❌ Monitoring cancelled by user")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"❌ Unexpected error: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
