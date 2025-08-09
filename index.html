@@ -1,850 +1,129 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Monitor Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .header h1 {
-            color: #333;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .mode-selector {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 30px;
-        }
-        
-        .mode-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
-            color: #495057;
-        }
-        
-        .mode-btn.active {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-        }
-        
-        .search-section {
-            margin-bottom: 40px;
-            text-align: center;
-        }
-        
-        .search-container {
-            position: relative;
-            max-width: 500px;
-            margin: 0 auto 20px;
-        }
-        
-        .search-input {
-            width: 100%;
-            padding: 15px 120px 15px 20px;
-            font-size: 1.1em;
-            border: 2px solid #e1e8ed;
-            border-radius: 50px;
-            outline: none;
-            transition: all 0.3s ease;
-            background: white;
-        }
-        
-        .search-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .search-btn {
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .search-btn:hover {
-            transform: translateY(-50%) scale(1.05);
-        }
-        
-        .search-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        .quick-actions {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-        
-        .action-btn {
-            background: linear-gradient(45deg, #51cf66, #40c057);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .action-btn:hover {
-            transform: scale(1.05);
-        }
-        
-        .action-btn.secondary {
-            background: linear-gradient(45deg, #868e96, #6c757d);
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-            animation: pulse 2s ease-in-out infinite;
-            display: none;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #e1e8ed;
-            border-radius: 3px;
-            overflow: hidden;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border-radius: 3px;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        
-        .profile-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(240, 147, 251, 0.3);
-            display: none;
-        }
-        
-        .profile-header {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .profile-pic {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            object-fit: cover;
-        }
-        
-        .profile-info h2 {
-            font-size: 1.8em;
-            margin-bottom: 5px;
-        }
-        
-        .profile-info .username {
-            opacity: 0.9;
-            font-size: 1.1em;
-        }
-        
-        .badges {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .badge {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 0.8em;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .stat-number {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .stat-label {
-            color: #666;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .changes-section {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        
-        .changes-title {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        
-        .change-item {
-            background: white;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .error {
-            background: #ff6b6b;
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .success {
-            background: #51cf66;
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .info {
-            background: #339af0;
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .timestamp {
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 20px;
-        }
-        
-        .profile-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        
-        .profile-link a {
-            display: inline-block;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 25px;
-            font-weight: 500;
-            transition: transform 0.3s ease;
-        }
-        
-        .profile-link a:hover {
-            transform: scale(1.05);
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.5s ease-out;
-        }
-        
-        @media (max-width: 600px) {
-            .container {
-                padding: 20px;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .profile-header {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .search-input {
-                padding-right: 100px;
-            }
-            
-            .mode-selector {
-                flex-direction: column;
-                align-items: center;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <title>Instagram Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu; margin:0; background:#0b0d10; color:#e7edf3}
+    .wrap{max-width:900px; margin:40px auto; padding:0 16px}
+    header{display:flex; align-items:center; justify-content:space-between}
+    .badges{display:flex; gap:8px; align-items:center}
+    .badge{font-size:12px; padding:4px 8px; border-radius:999px; background:#1a2230; color:#9db2c5; border:1px solid #203046}
+    .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px}
+    .card{background:#0f1622; border:1px solid #1c2a3b; border-radius:16px; padding:16px}
+    .title{font-weight:600; color:#9db2c5; font-size:12px; letter-spacing:.4px; text-transform:uppercase}
+    .num{font-size:34px; font-weight:700; margin-top:6px}
+    .row{display:flex; gap:12px; align-items:center; margin-top:12px}
+    .chip{padding:6px 10px; border-radius:999px; border:1px solid #1c2a3b; background:#0f1622; color:#cfe2f2; cursor:pointer}
+    .input{flex:1; background:#0f1622; border:1px solid #1c2a3b; color:#cfe2f2; padding:10px 12px; border-radius:10px}
+    button{background:#1f6feb; color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer}
+    .muted{color:#9db2c5; font-size:12px}
+    .verified{display:none}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 Instagram Monitor Dashboard</h1>
-            <p>Track Instagram profiles with automated monitoring and instant search</p>
-        </div>
-        
-        <div class="mode-selector">
-            <button class="mode-btn active" onclick="switchMode('instant')" id="instantMode">
-                ⚡ Instant Search
-            </button>
-            <button class="mode-btn" onclick="switchMode('actions')" id="actionsMode">
-                🔄 GitHub Actions
-            </button>
-        </div>
-        
-        <div class="search-section">
-            <div class="search-container">
-                <input 
-                    type="text" 
-                    class="search-input" 
-                    placeholder="Enter Instagram username"
-                    id="usernameInput"
-                >
-                <button class="search-btn" onclick="performSearch()" id="searchBtn">
-                    Search
-                </button>
-            </div>
-            
-            <div class="quick-actions">
-                <button class="action-btn" onclick="quickSearch('bob')">bob</button>
-                <button class="action-btn" onclick="quickSearch('cristiano')">cristiano</button>
-                <button class="action-btn" onclick="quickSearch('therock')">therock</button>
-                <button class="action-btn" onclick="quickSearch('selenagomez')">selenagomez</button>
-                <a href="./data/monitoring_summary.json" target="_blank" class="action-btn secondary">Raw Data</a>
-                <a href="https://github.com/arandomguyhere/instagram_monitor/actions" target="_blank" class="action-btn secondary">Actions</a>
-            </div>
-        </div>
-        
-        <div class="info" id="infoMessage">
-            💡 <strong>Instant Search:</strong> Get immediate results for any username<br>
-            🔄 <strong>GitHub Actions:</strong> Automated monitoring with historical tracking
-        </div>
-        
-        <div class="error" id="errorMessage"></div>
-        <div class="success" id="successMessage"></div>
-        
-        <div class="loading" id="loadingMessage">
-            🔍 Fetching Instagram data...
-            <div class="progress-bar" id="progressBar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-        </div>
-        
-        <div class="profile-card" id="profileCard">
-            <div class="profile-header">
-                <img src="" alt="Profile Picture" class="profile-pic" id="profilePic">
-                <div class="profile-info">
-                    <h2 id="fullName"></h2>
-                    <div class="username" id="username"></div>
-                    <div class="badges" id="badges"></div>
-                </div>
-            </div>
-            <div id="bio" style="opacity: 0.9; line-height: 1.6; margin-top: 15px;"></div>
-        </div>
-        
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card">
-                <div class="stat-number" id="followersCount">0</div>
-                <div class="stat-label">Followers</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="followingCount">0</div>
-                <div class="stat-label">Following</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="postsCount">0</div>
-                <div class="stat-label">Posts</div>
-            </div>
-        </div>
-        
-        <div class="changes-section" id="changesSection">
-            <h3 class="changes-title">🔔 Recent Changes</h3>
-            <div id="changesList"></div>
-        </div>
-        
-        <div class="profile-link" id="profileLink">
-            <a href="#" target="_blank" id="instagramLink">View on Instagram</a>
-        </div>
-        
-        <div class="timestamp" id="timestamp"></div>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1 id="name" style="margin:0 0 6px 0;">Instagram Monitor</h1>
+        <div class="muted"><span id="username">@username</span> <span id="verifiedBadge" class="badge verified">Verified</span></div>
+      </div>
+      <div class="badges">
+        <span id="methodBadge" class="badge">unknown</span>
+        <span id="demoBadge" class="badge">Demo Data</span>
+      </div>
+    </header>
+
+    <div class="row" style="margin-top:18px;">
+      <input id="searchInput" class="input" placeholder="Search username (no @)" />
+      <button id="searchBtn">Search</button>
     </div>
-    
-    <script>
-        // Current mode: 'instant' or 'actions'
-        let currentMode = 'instant';
-        
-        // Sample data for instant search
-        const sampleData = {
-            'cristiano': { 
-                followers: 634000000, following: 570, posts: 3520, 
-                full_name: 'Cristiano Ronaldo', 
-                bio: 'Manchester United | Portugal 🇵🇹', 
-                is_verified: true, is_private: false,
-                profile_pic_url: 'https://ui-avatars.com/api/?name=Cristiano+Ronaldo&size=200&background=667eea&color=fff'
-            },
-            'therock': { 
-                followers: 390000000, following: 650, posts: 7800, 
-                full_name: 'Dwayne Johnson', 
-                bio: 'builder of stuff chaser of mana', 
-                is_verified: true, is_private: false,
-                profile_pic_url: 'https://ui-avatars.com/api/?name=Dwayne+Johnson&size=200&background=667eea&color=fff'
-            },
-            'selenagomez': { 
-                followers: 424000000, following: 280, posts: 1980, 
-                full_name: 'Selena Gomez', 
-                bio: 'My mental health brand @rarebeauty', 
-                is_verified: true, is_private: false,
-                profile_pic_url: 'https://ui-avatars.com/api/?name=Selena+Gomez&size=200&background=667eea&color=fff'
-            },
-            'bob': { 
-                followers: 822017, following: 405, posts: 35, 
-                full_name: 'B.o.B', 
-                bio: 'Artist, Producer, Entrepreneur', 
-                is_verified: true, is_private: false,
-                profile_pic_url: 'https://ui-avatars.com/api/?name=B.o.B&size=200&background=667eea&color=fff'
-            }
-        };
-        
-        // Elements
-        const usernameInput = document.getElementById('usernameInput');
-        const searchBtn = document.getElementById('searchBtn');
-        const loadingMessage = document.getElementById('loadingMessage');
-        const progressBar = document.getElementById('progressBar');
-        const progressFill = document.getElementById('progressFill');
-        const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
-        const infoMessage = document.getElementById('infoMessage');
-        const profileCard = document.getElementById('profileCard');
-        const statsGrid = document.getElementById('statsGrid');
-        const changesSection = document.getElementById('changesSection');
-        const profileLink = document.getElementById('profileLink');
-        
-        // Add enter key support
-        usernameInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                performSearch();
-            }
-        });
-        
-        function switchMode(mode) {
-            currentMode = mode;
-            
-            // Update button styles
-            document.getElementById('instantMode').classList.toggle('active', mode === 'instant');
-            document.getElementById('actionsMode').classList.toggle('active', mode === 'actions');
-            
-            // Update search button text and placeholder
-            if (mode === 'instant') {
-                searchBtn.textContent = 'Search';
-                usernameInput.placeholder = 'Enter Instagram username for instant results';
-                infoMessage.innerHTML = '⚡ <strong>Instant Mode:</strong> Get immediate sample data for any username';
-            } else {
-                searchBtn.textContent = 'Monitor';
-                usernameInput.placeholder = 'Enter Instagram username to monitor';
-                infoMessage.innerHTML = '🔄 <strong>Actions Mode:</strong> Trigger GitHub Actions monitoring for real data collection';
-            }
-            
-            // Clear any current display
-            hideElements();
-        }
-        
-        function quickSearch(username) {
-            usernameInput.value = username;
-            performSearch();
-        }
-        
-        function performSearch() {
-            const username = usernameInput.value.trim();
-            
-            if (!username) {
-                showError('Please enter an Instagram username');
-                return;
-            }
-            
-            if (currentMode === 'instant') {
-                instantSearch(username);
-            } else {
-                actionsSearch(username);
-            }
-        }
-        
-        function instantSearch(username) {
-            const cleanUsername = username.replace('@', '').toLowerCase();
-            
-            showLoading();
-            infoMessage.style.display = 'none';
-            
-            // Simulate loading delay
-            setTimeout(() => {
-                const userData = sampleData[cleanUsername] || generateRandomData(cleanUsername);
-                
-                const profileData = {
-                    username: cleanUsername,
-                    full_name: userData.full_name,
-                    followers: userData.followers,
-                    following: userData.following,
-                    posts: userData.posts,
-                    bio: userData.bio,
-                    is_private: userData.is_private,
-                    is_verified: userData.is_verified,
-                    profile_pic_url: userData.profile_pic_url,
-                    method: 'instant_demo',
-                    timestamp: new Date().toISOString()
-                };
-                
-                displayProfile(profileData);
-                showSuccess(`✨ Instant results for @${cleanUsername}`);
-            }, 1500);
-        }
-        
-        function actionsSearch(username) {
-            showLoading();
-            infoMessage.style.display = 'none';
-            
-            // Try to load existing data first
-            loadActionsData()
-                .then(data => {
-                    if (data && data.username.toLowerCase() === username.toLowerCase()) {
-                        displayProfile(data);
-                        showSuccess(`📊 Loaded monitoring data for @${data.username}`);
-                    } else {
-                        triggerGitHubActions(username);
-                    }
-                })
-                .catch(() => {
-                    triggerGitHubActions(username);
-                });
-        }
-        
-        function triggerGitHubActions(username) {
-            const workflowUrl = `https://github.com/arandomguyhere/instagram_monitor/actions/workflows/monitor.yml`;
-            
-            hideLoading();
-            showSuccess(`🔄 Opening GitHub Actions to monitor @${username}. After completion, switch to Actions mode and search again.`);
-            
-            // Auto-refresh after 2 minutes to check for new data
-            setTimeout(() => {
-                if (currentMode === 'actions') {
-                    loadActionsData()
-                        .then(data => {
-                            if (data) {
-                                displayProfile(data);
-                                showSuccess(`✅ Updated data loaded for @${data.username}`);
-                            }
-                        })
-                        .catch(() => {
-                            showError('No new data yet. Please wait for GitHub Actions to complete and try again.');
-                        });
-                }
-            }, 120000);
-            
-            window.open(workflowUrl, '_blank');
-        }
-        
-        async function loadActionsData() {
-            const response = await fetch('./data/monitoring_summary.json');
-            if (!response.ok) {
-                throw new Error('No monitoring data available');
-            }
-            return await response.json();
-        }
-        
-        function generateRandomData(username) {
-            return {
-                followers: Math.floor(Math.random() * 100000) + 1000,
-                following: Math.floor(Math.random() * 1000) + 100,
-                posts: Math.floor(Math.random() * 500) + 50,
-                full_name: username.charAt(0).toUpperCase() + username.slice(1),
-                bio: 'Instagram User',
-                is_verified: Math.random() > 0.8,
-                is_private: Math.random() > 0.7,
-                profile_pic_url: `https://ui-avatars.com/api/?name=${username}&size=200&background=667eea&color=fff`
-            };
-        }
-        
-        function showLoading() {
-            loadingMessage.style.display = 'block';
-            progressBar.style.display = 'block';
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-            hideElements();
-            searchBtn.disabled = true;
-            searchBtn.textContent = 'Loading...';
-            
-            // Animate progress bar
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += Math.random() * 15;
-                if (progress > 90) progress = 90;
-                progressFill.style.width = progress + '%';
-            }, 200);
-            
-            window.currentProgressInterval = progressInterval;
-        }
-        
-        function hideLoading() {
-            loadingMessage.style.display = 'none';
-            progressBar.style.display = 'none';
-            searchBtn.disabled = false;
-            searchBtn.textContent = currentMode === 'instant' ? 'Search' : 'Monitor';
-            
-            progressFill.style.width = '100%';
-            
-            if (window.currentProgressInterval) {
-                clearInterval(window.currentProgressInterval);
-            }
-        }
-        
-        function showError(message) {
-            hideLoading();
-            errorMessage.innerHTML = message;
-            errorMessage.style.display = 'block';
-            hideElements();
-        }
-        
-        function showSuccess(message) {
-            successMessage.innerHTML = message;
-            successMessage.style.display = 'block';
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 5000);
-        }
-        
-        function hideElements() {
-            profileCard.style.display = 'none';
-            statsGrid.style.display = 'none';
-            changesSection.style.display = 'none';
-            profileLink.style.display = 'none';
-        }
-        
-        function displayProfile(data) {
-            hideLoading();
-            errorMessage.style.display = 'none';
-            
-            // Update profile info
-            document.getElementById('fullName').textContent = data.full_name || data.username;
-            document.getElementById('username').textContent = `@${data.username}`;
-            
-            // Handle profile picture
-            const profilePic = document.getElementById('profilePic');
-            if (data.profile_pic_url) {
-                profilePic.src = data.profile_pic_url;
-                profilePic.style.display = 'block';
-            } else {
-                profilePic.style.display = 'none';
-            }
-            
-            // Update bio
-            const bioElement = document.getElementById('bio');
-            if (data.bio) {
-                bioElement.textContent = data.bio;
-                bioElement.style.display = 'block';
-            } else {
-                bioElement.style.display = 'none';
-            }
-            
-            // Update badges
-            const badgesElement = document.getElementById('badges');
-            let badges = '';
-            
-            if (data.is_verified) {
-                badges += '<span class="badge">✓ Verified</span>';
-            }
-            if (data.is_private) {
-                badges += '<span class="badge">🔒 Private</span>';
-            }
-            
-            // Add mode badge
-            if (currentMode === 'instant') {
-                badges += '<span class="badge" style="background: rgba(255,255,255,0.3);">⚡ Demo Data</span>';
-            } else {
-                const methodLabels = {
-                    'authenticated_api': '🔐 Authenticated',
-                    'anonymous_api': '👤 Anonymous',
-                    'web_scraping': '🌐 Web Data',
-                    'fallback': '⚠️ Fallback'
-                };
-                const methodLabel = methodLabels[data.data_collection_method] || '📊 Monitored';
-                badges += `<span class="badge" style="background: rgba(255,255,255,0.3);">${methodLabel}</span>`;
-            }
-            
-            badgesElement.innerHTML = badges;
-            
-            // Update stats with animation
-            animateNumber('followersCount', data.followers);
-            animateNumber('followingCount', data.following);
-            animateNumber('postsCount', data.posts);
-            
-            // Show changes if available (Actions mode only)
-            if (currentMode === 'actions' && data.changes && data.changes.has_changes) {
-                const changesList = document.getElementById('changesList');
-                changesList.innerHTML = data.changes.changes_detected
-                    .map(change => `<div class="change-item">${change}</div>`)
-                    .join('');
-                changesSection.style.display = 'block';
-            }
-            
-            // Update Instagram link
-            document.getElementById('instagramLink').href = `https://instagram.com/${data.username}`;
-            
-            // Update timestamp
-            const timestamp = new Date(data.timestamp).toLocaleString();
-            const modeLabel = currentMode === 'instant' ? 'instant demo' : 'GitHub Actions';
-            document.getElementById('timestamp').textContent = `Last updated: ${timestamp} (via ${modeLabel})`;
-            
-            // Show elements with animation
-            profileCard.style.display = 'block';
-            profileCard.className = 'profile-card fade-in';
-            
-            setTimeout(() => {
-                statsGrid.style.display = 'grid';
-                statsGrid.className = 'stats-grid fade-in';
-            }, 200);
-            
-            setTimeout(() => {
-                profileLink.style.display = 'block';
-                profileLink.className = 'profile-link fade-in';
-            }, 400);
-        }
-        
-        function animateNumber(elementId, targetValue) {
-            const element = document.getElementById(elementId);
-            const startValue = 0;
-            const duration = 1000;
-            const startTime = performance.now();
-            
-            function updateNumber(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOut);
-                
-                element.textContent = currentValue.toLocaleString();
-                
-                if (progress < 1) {
-                    requestAnimationFrame(updateNumber);
-                }
-            }
-            
-            requestAnimationFrame(updateNumber);
-        }
-        
-        // Auto-load GitHub Actions data on page load if available
-        window.addEventListener('load', () => {
-            switchMode('instant'); // Start in instant mode
-            
-            // Try to load any existing Actions data
-            loadActionsData()
-                .then(data => {
-                    if (data) {
-                        usernameInput.value = data.username;
-                        // Don't auto-display, let user choose mode
-                    }
-                })
-                .catch(() => {
-                    // No Actions data available, start with demo
-                    quickSearch('bob');
-                });
-        });
-    </script>
+
+    <div class="row" style="margin-top:10px;">
+      <button class="chip" data-user="therock">therock</button>
+      <button class="chip" data-user="cristiano">cristiano</button>
+      <button class="chip" data-user="selenagomez">selenagomez</button>
+      <button class="chip" data-user="taylorswift">taylorswift</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="title">Followers</div>
+        <div id="followers" class="num">0</div>
+      </div>
+      <div class="card">
+        <div class="title">Following</div>
+        <div id="following" class="num">0</div>
+      </div>
+      <div class="card">
+        <div class="title">Posts</div>
+        <div id="posts" class="num">0</div>
+      </div>
+    </div>
+
+    <div class="muted" style="margin-top:16px">
+      Last updated: <span id="lastUpdated">—</span> • Profile: <a id="profileLink" href="#" target="_blank" rel="noopener">open</a>
+    </div>
+  </div>
+
+  <script>
+  // Base path for project Pages (e.g., /instagram_monitor)
+  const BASE = location.pathname.split('/').slice(0,2).join('/'); // "" on user site, "/instagram_monitor" on project site
+
+  const $  = (q) => document.querySelector(q);
+  const txt = (q, v) => { const el=$(q); if (el) el.textContent = v; };
+  const show = (q, on=true) => { const el=$(q); if (el) el.style.display = on?'':'none'; };
+  const fmt = (n) => (Number(n)||0).toLocaleString();
+
+  async function loadProfile(user){
+    const url = `${BASE}/data/${encodeURIComponent(user)}/monitoring_summary.json?ts=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Fetch failed ${res.status}`);
+    return res.json();
+  }
+
+  function render(d){
+    txt('#name', d.full_name || d.username);
+    txt('#username', '@' + d.username);
+    txt('#followers', fmt(d.followers));
+    txt('#following', fmt(d.following));
+    txt('#posts', fmt(d.posts));
+    txt('#lastUpdated', d.timestamp ? new Date(d.timestamp).toLocaleString() : '—');
+    const link = $('#profileLink'); if (link) link.href = d.profile_url || `https://instagram.com/${d.username}`;
+    const method = d.data_collection_method || d.method || 'unknown';
+    txt('#methodBadge', method.replace('_',' '));
+    show('#verifiedBadge', !!d.is_verified);
+    show('#demoBadge', false);
+  }
+
+  async function showUser(user){
+    $('#searchInput').value = user;
+    try {
+      const data = await loadProfile(user);
+      render(data);
+    } catch (e){
+      console.warn('Falling back to demo (fetch failed):', e);
+      show('#demoBadge', true);
+      txt('#name', 'Demo / Not Found');
+      txt('#username', '@' + user);
+      txt('#followers', '0'); txt('#following', '0'); txt('#posts', '0');
+      txt('#lastUpdated', '—');
+      const link = $('#profileLink'); if (link) link.href = `https://instagram.com/${user}`;
+      show('#verifiedBadge', false);
+      txt('#methodBadge', 'fallback');
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    $('#searchBtn')?.addEventListener('click', () => showUser(($('#searchInput').value||'').trim()));
+    $('#searchInput')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') $('#searchBtn').click(); });
+    document.querySelectorAll('[data-user]').forEach(el=>{
+      el.addEventListener('click', ()=>showUser(el.getAttribute('data-user')));
+    });
+    const initial = (new URLSearchParams(location.search)).get('u') || 'therock';
+    showUser(initial);
+  });
+  </script>
 </body>
 </html>
