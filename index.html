@@ -80,8 +80,9 @@
   </div>
 
   <script>
-    // Works on user site ("") and project site ("/instagram_monitor")
-    const BASE = location.pathname.split('/').slice(0,2).join('/');
+    // Robust BASE: '' on user site; '/<repo>' on project site
+    const parts = location.pathname.split('/').filter(Boolean);
+    const BASE = parts.length ? `/${parts[0]}` : '';
 
     const $  = (q) => document.querySelector(q);
     const txt = (q, v) => { const el=$(q); if (el) el.textContent = v; };
@@ -124,10 +125,13 @@
       const link = $('#profileLink');
       if (link) link.href = d.profile_url || `https://instagram.com/${d.username}`;
 
-      // Avatar: prefer HD, then normal, else local placeholder
+      // Avatar: prefer HD, then normal, else local placeholder; add onerror fallback
       const pic = d.profile_pic_url_hd || d.profile_pic_url || 'assets/instagram_profile_pic_empty.jpeg';
       const img = $('#avatar');
-      if (img) img.src = pic + (pic.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+      if (img) {
+        img.onerror = () => { img.onerror = null; img.src = 'assets/instagram_profile_pic_empty.jpeg'; };
+        img.src = pic + (pic.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+      }
 
       const method = d.data_collection_method || d.method || 'unknown';
       txt('#methodBadge', method.replace('_',' '));
