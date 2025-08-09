@@ -164,13 +164,11 @@ def try_web_scraping_method(username: str) -> dict | None:
             except json.JSONDecodeError:
                 pass
 
-        # Legacy blobs that used to contain counts
+        # Legacy blobs (often removed; keep as best-effort)
         m_blob = re.search(r'>\s*window\.__additionalDataLoaded__\s*\(\s*[^,]+,\s*({.*?})\s*\)\s*;<', html_content)
         if m_blob:
             try:
-                data = json.loads(m_blob.group(1))
-                # Best-effort extraction (schema may vary)
-                # Keep defaults if keys are missing
+                _ = json.loads(m_blob.group(1))
             except json.JSONDecodeError:
                 pass
 
@@ -272,7 +270,6 @@ def try_instaloader_with_session(username: str) -> dict | None:
         try:
             profile_data["external_url"] = getattr(profile, "external_url", None)
             if profile.mediacount:
-                # This may do an extra request; keep it quick
                 post = next(profile.get_posts(), None)
                 if post:
                     profile_data["last_post_date"] = post.date_utc.replace(tzinfo=timezone.utc).isoformat()
@@ -355,7 +352,7 @@ def create_fallback_data(username: str) -> dict:
 def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: int = 100) -> bool:
     """Fetch Instagram profile data using multiple methods with fallbacks"""
 
-    # Create output directory (do NOT append username here — pass per-user dir from CI)
+    # Create output directory (we expect per-user dir to be passed from CI)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -460,7 +457,6 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
     for file in sorted(output_path.glob("*.json")):
         logger.info(f"     • {file.name}")
 
-    # If we only had fallback, you can choose to fail CI by returning False
     return True
 
 
