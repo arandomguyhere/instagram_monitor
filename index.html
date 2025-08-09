@@ -5,9 +5,10 @@
   <title>Instagram Monitor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root { color-scheme: dark; }
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu; margin:0; background:#0b0d10; color:#e7edf3}
     .wrap{max-width:900px; margin:40px auto; padding:0 16px}
-    header{display:flex; align-items:center; justify-content:space-between}
+    header{display:flex; align-items:center; justify-content:space-between; gap:16px}
     .badges{display:flex; gap:8px; align-items:center}
     .badge{font-size:12px; padding:4px 8px; border-radius:999px; background:#1a2230; color:#9db2c5; border:1px solid #203046}
     .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px}
@@ -20,6 +21,7 @@
     button{background:#1f6feb; color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer}
     .muted{color:#9db2c5; font-size:12px}
     .verified{display:none}
+    a { color:#8ab4ff; }
   </style>
 </head>
 <body>
@@ -71,13 +73,14 @@
     </div>
 
     <div class="muted" style="margin-top:16px">
-      Last updated: <span id="lastUpdated">—</span> • Profile:
-      <a id="profileLink" href="#" target="_blank" rel="noopener">open</a>
+      Last updated: <span id="lastUpdated">—</span> •
+      Profile: <a id="profileLink" href="#" target="_blank" rel="noopener">open</a> •
+      Raw Data: <a id="rawDataLink" href="#" target="_blank" rel="noopener">monitoring_summary.json</a>
     </div>
   </div>
 
   <script>
-  // Base path for project pages at repo root (e.g., /instagram_monitor) or user site ("")
+  // Base path for project pages at repo root ("/instagram_monitor") or user site ("")
   const BASE = location.pathname.split('/').slice(0,2).join('/');
 
   const $  = (q) => document.querySelector(q);
@@ -112,24 +115,29 @@
     txt('#methodBadge', method.replace('_',' '));
     show('#verifiedBadge', !!d.is_verified);
     show('#demoBadge', false);
+
+    // Keep Raw Data link aligned to current user
+    const raw = $('#rawDataLink');
+    if (raw) raw.href = `${BASE}/data/${encodeURIComponent(d.username)}/monitoring_summary.json`;
   }
 
   async function showUser(user){
-    $('#searchInput').value = user;
+    if (!user) return;
+    $('#searchInput') && ($('#searchInput').value = user);
     try {
       const data = await loadProfile(user);
       render(data);
     } catch (e){
-      console.warn('Falling back to demo (fetch failed):', e);
+      console.warn('Falling back (fetch failed):', e);
       show('#demoBadge', true);
       txt('#name', 'Demo / Not Found');
       txt('#username', '@' + user);
-      txt('#followers', '0'); txt('#following', '0'); txt('#posts', '0');
-      txt('#lastUpdated', '—');
+      txt('#followers','0'); txt('#following','0'); txt('#posts','0');
+      txt('#lastUpdated','—');
       const link = $('#profileLink'); if (link) link.href = `https://instagram.com/${user}`;
       const img = $('#avatar'); if (img) img.src = 'instagram_profile_pic_empty.jpeg';
-      show('#verifiedBadge', false);
-      txt('#methodBadge', 'fallback');
+      txt('#methodBadge','fallback');
+      const raw = $('#rawDataLink'); if (raw) raw.href = `${BASE}/data/${encodeURIComponent(user)}/monitoring_summary.json`;
     }
   }
 
