@@ -34,8 +34,8 @@ jobs:
             # Parse the input from manual trigger
             INPUT="${{ github.event.inputs.users }}"
           else
-            # Default for scheduled runs
-            INPUT="therock"
+            # Default for scheduled runs - monitor all default users
+            INPUT="therock,cristiano,selenagomez,taylorswift,kimkardashian"
           fi
           
           # Convert CSV to JSON array using Python
@@ -88,7 +88,8 @@ jobs:
           OUT="monitoring_data/${USERNAME}"
           mkdir -p "$OUT"
           
-          FLAGS="--download-pfp"
+          # Always download profile pictures
+          FLAGS="--download-pfp --verbosity 1"
           
           if [ "${{ github.event.inputs.prefer_mobile }}" = "true" ]; then
             FLAGS="$FLAGS --prefer-mobile"
@@ -113,6 +114,8 @@ jobs:
           file_pattern: |
             monitoring_data/**/*.json
             monitoring_data/**/*.jpg
+            monitoring_data/**/*.jpeg
+            monitoring_data/**/*.png
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
           skip_dirty_check: false
@@ -131,7 +134,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+        with:
+          ref: main  # Ensure we get the latest commits
+          
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
