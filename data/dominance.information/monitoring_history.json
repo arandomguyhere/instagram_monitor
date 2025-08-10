@@ -23,8 +23,16 @@
       "posts": 0,
       "is_private": false,
       "method": "web_scraping"
+    },
+    {
+      "timestamp": "2025-08-10T02:34:04.090790+00:00",
+      "followers": 0,
+      "following": 0,
+      "posts": 0,
+      "is_private": true,
+      "method": "fallback"
     }
   ],
   "username": "dominance.information",
-  "last_updated": "2025-08-10T02:19:59.378206+00:00"
+  "last_updated": "2025-08-10T02:34:04.090790+00:00"
 }
