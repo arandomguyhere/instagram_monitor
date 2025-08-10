@@ -34,14 +34,16 @@ jobs:
           USERS_INPUT="${{ github.event.inputs.users }}"
           if [ -z "$USERS_INPUT" ]; then USERS_INPUT="therock"; fi
           export USERS_INPUT
-          USER_MATRIX=$(python3 - <<'PY'
-import os, json
+          # Write directly to $GITHUB_OUTPUT from Python (no command substitution, no trailing ')')
+          python3 - "$GITHUB_OUTPUT" <<'PY'
+import os, json, sys
+out = sys.argv[1]
 raw = os.environ.get("USERS_INPUT","").strip()
 users = [u.strip().lstrip("@") for u in raw.split(",") if u.strip()]
-print(json.dumps(users if users else ["therock"]))
+arr = json.dumps(users if users else ["therock"])
+with open(out, "a", encoding="utf-8") as f:
+    f.write(f"user_matrix={arr}\n")
 PY
-)
-          echo "user_matrix=${USER_MATRIX}" >> "$GITHUB_OUTPUT"
 
   monitor:
     needs: plan
