@@ -23,7 +23,8 @@ jobs:
 
           echo "==> Patch monitor.py import Retry location"
           if grep -q "from requests.adapters import HTTPAdapter, Retry" monitor.py 2>/dev/null; then
-            sed -i 's/from requests.adapters import HTTPAdapter, Retry/from requests.adapters import HTTPAdapter\nfrom urllib3.util.retry import Retry/' monitor.py
+            sed -i 's/from requests.adapters import HTTPAdapter, Retry/from requests.adapters import HTTPAdapter\
+from urllib3.util.retry import Retry/' monitor.py
           else
             echo "Import line already OK or file missing; skipping."
           fi
@@ -67,7 +68,6 @@ PY
             [ -f "$f" ] || continue
             if grep -q "Build user matrix" "$f"; then
               if ! grep -q "export INPUT" "$f"; then
-                # Insert export after INPUT default guard
                 sed -i '/if \[ -z "\$INPUT" \]; then INPUT="therock"; fi/a\          export INPUT' "$f"
                 echo "Patched export INPUT in $f"
               else
@@ -122,21 +122,17 @@ EOF
           commit-message: "fix: workflow input, imports, logger; cleanup & ignore runtime data"
           title: "Fix: monitor stability & repo hygiene (imports, INPUT export, logger, cleanup)"
           body: |
-            **What**  
-            - Fix `monitor.py` import (`Retry` from `urllib3.util.retry`)  
-            - Fix logger verbosity handler update  
-            - Ensure `export INPUT` in any workflow that builds the user matrix  
-            - Remove orphaned files & tracked runtime data  
-            - Add `.gitignore` + placeholders  
+            **What**
+            - Fix `monitor.py` import (`Retry` from `urllib3.util.retry`)
+            - Fix logger verbosity handler update
+            - Ensure `export INPUT` in any workflow building the user matrix
+            - Remove orphaned files & tracked runtime data
+            - Add `.gitignore` + placeholders
             - Add `requirements.txt` with sane pins
 
-            **Why**  
-            - Prevent import crash, ensure verbosity works, and allow custom `users` input to propagate beyond `therock`.  
-            - Keep repo clean and CI deterministic.
-
             **How to verify**
-            - Run the Instagram Monitor workflow with `users: bob`  
-            - Expect outputs under `monitoring_data/bob/` and job logs reflecting the chosen user.
+            - Run Instagram Monitor with `users: bob`
+            - Expect outputs under `monitoring_data/bob/` and logs showing the chosen user.
 
           branch: fix/monitor-stability
           delete-branch: false
