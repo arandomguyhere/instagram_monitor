@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Instagram Monitor - GitHub Actions Edition (Authentication Aware)
-Always writes BOTH monitoring_summary.json and quick_stats.json.
-FIXED: Enhanced profile picture URL extraction and handling.
+Enhanced Instagram Monitor - Combines your existing system with advanced features
 """
 
 import argparse
@@ -13,8 +11,13 @@ import random
 import re
 import sys
 import time
+import smtplib
+import ssl
 from datetime import datetime, timezone
 from pathlib import Path
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.header import Header
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -26,13 +29,29 @@ except ImportError:
     print("Error: instaloader not found. Install with: pip install instaloader")
     sys.exit(1)
 
-# ---------- Logging ----------
+# ---------- Enhanced Configuration ----------
+ENABLE_EMAIL_NOTIFICATIONS = False
+SMTP_HOST = ""
+SMTP_PORT = 587
+SMTP_USER = ""
+SMTP_PASSWORD = ""
+SMTP_SSL = True
+SENDER_EMAIL = ""
+RECEIVER_EMAIL = ""
+
+DETECT_PROFILE_CHANGES = True
+SAVE_PROFILE_PICTURES = True
+TRACK_FOLLOWERS = False  # Disabled by default for GitHub Actions
+TRACK_POSTS = True
+
+# Enhanced logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+# ---------- Enhanced Helper Functions ----------
 
-# ---------- Helpers ----------
 def get_random_user_agent() -> str:
+    """Generate random user agent to avoid detection"""
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -41,108 +60,207 @@ def get_random_user_agent() -> str:
     ]
     return random.choice(user_agents)
 
-
-def _unescape(s: str) -> str:
-    try:
-        return bytes(s, "utf-8").decode("unicode_escape")
-    except Exception:
-        return s
-
-
-def load_historical_data(filepath: Path) -> dict:
-    if filepath.exists():
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.warning(f"Failed to load historical data: {e}")
-    return {}
-
-
 def write_json_atomic(path: Path, data: dict) -> None:
-    """Write JSON atomically to avoid partial files in CI."""
+    """Write JSON atomically to avoid partial files"""
     tmp = path.with_suffix(path.suffix + ".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     tmp.replace(path)
 
+def send_email_notification(subject: str, body: str, html_body: str = "") -> bool:
+    """Send email notification if configured"""
+    if not ENABLE_EMAIL_NOTIFICATIONS or not all([SMTP_HOST, SMTP_USER, SMTP_PASSWORD, SENDER_EMAIL, RECEIVER_EMAIL]):
+        return False
+    
+    try:
+        if SMTP_SSL:
+            ssl_context = ssl.create_default_context()
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15)
+            server.starttls(context=ssl_context)
+        else:
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15)
+        
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        
+        msg = MIMEMultipart('alternative')
+        msg["From"] = SENDER_EMAIL
+        msg["To"] = RECEIVER_EMAIL
+        msg["Subject"] = str(Header(subject, 'utf-8'))
+        
+        # Add text version
+        text_part = MIMEText(body.encode('utf-8'), 'plain', _charset='utf-8')
+        msg.attach(text_part)
+        
+        # Add HTML version if provided
+        if html_body:
+            html_part = MIMEText(html_body.encode('utf-8'), 'html', _charset='utf-8')
+            msg.attach(html_part)
+        
+        server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
+        server.quit()
+        logger.info(f"Email notification sent: {subject}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+        return False
 
-def detect_changes(current: dict, historical: dict) -> dict:
-    changes = {"has_changes": False, "changes_detected": [], "timestamp": datetime.now(timezone.utc).isoformat()}
+def save_profile_picture(url: str, filepath: str) -> bool:
+    """Download and save profile picture"""
+    try:
+        response = requests.get(url, headers={'User-Agent': get_random_user_agent()}, timeout=15, stream=True)
+        response.raise_for_status()
+        
+        with open(filepath, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to save profile picture: {e}")
+        return False
 
-    if not historical:
+def compare_profile_pictures(file1: str, file2: str) -> bool:
+    """Compare two profile pictures to detect changes"""
+    if not (os.path.isfile(file1) and os.path.isfile(file2)):
+        return False
+    
+    try:
+        with open(file1, 'rb') as f1, open(file2, 'rb') as f2:
+            return f1.read() == f2.read()
+    except Exception:
+        return False
+
+def detect_changes(current_data: dict, historical_data: dict) -> dict:
+    """Detect changes between current and historical data"""
+    changes = {
+        "has_changes": False,
+        "changes_detected": [],
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if not historical_data:
         changes["changes_detected"].append("First time monitoring this user")
         changes["has_changes"] = True
         return changes
-
-    def _cmp(field, label=None):
-        old = historical.get(field, 0 if field in ("followers", "following", "posts") else "")
-        new = current.get(field, old)
-        if new != old:
-            label = label or field.title()
-            if isinstance(new, (int, float)) and isinstance(old, (int, float)):
-                diff = new - old
-                changes["changes_detected"].append(f"{label}: {old:,} → {new:,} ({diff:+,})")
-            else:
-                changes["changes_detected"].append(f"{label} changed")
+    
+    # Check for numerical changes
+    for field, label in [("followers", "Followers"), ("following", "Following"), ("posts", "Posts")]:
+        old_val = historical_data.get(field, 0)
+        new_val = current_data.get(field, 0)
+        if new_val != old_val:
+            diff = new_val - old_val
+            changes["changes_detected"].append(f"{label}: {old_val:,} → {new_val:,} ({diff:+,})")
             changes["has_changes"] = True
-
-    _cmp("followers", "Followers")
-    _cmp("following", "Following")
-    _cmp("posts", "Posts")
-    _cmp("bio", "Bio")
-    _cmp("full_name", "Display name")
-    if bool(current.get("is_private", False)) != bool(historical.get("is_private", False)):
-        status = "private" if current.get("is_private", False) else "public"
+    
+    # Check for text changes
+    for field, label in [("bio", "Bio"), ("full_name", "Display name")]:
+        old_val = historical_data.get(field, "")
+        new_val = current_data.get(field, "")
+        if new_val != old_val:
+            changes["changes_detected"].append(f"{label} changed")
+            changes["has_changes"] = True
+    
+    # Check privacy status
+    old_private = bool(historical_data.get("is_private", False))
+    new_private = bool(current_data.get("is_private", False))
+    if old_private != new_private:
+        status = "private" if new_private else "public"
         changes["changes_detected"].append(f"Account is now {status}")
         changes["has_changes"] = True
-
+    
     return changes
 
+# ---------- Enhanced Profile Picture Detection ----------
 
-# FIXED: Enhanced profile picture URL extraction
-def get_profile_pic_urls(profile):
-    """Extract multiple profile picture URL options for better fallbacks."""
+def detect_profile_picture_changes(username: str, current_pic_url: str, output_dir: Path) -> dict:
+    """Detect and handle profile picture changes"""
+    if not SAVE_PROFILE_PICTURES or not current_pic_url:
+        return {"changed": False}
+    
+    pic_dir = output_dir / "profile_pics"
+    pic_dir.mkdir(exist_ok=True)
+    
+    current_pic_file = pic_dir / f"{username}_current.jpg"
+    new_pic_file = pic_dir / f"{username}_new.jpg"
+    
+    # Download new picture
+    if not save_profile_picture(current_pic_url, str(new_pic_file)):
+        return {"changed": False, "error": "Failed to download"}
+    
+    # If no existing picture, this is the first time
+    if not current_pic_file.exists():
+        new_pic_file.rename(current_pic_file)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        archive_file = pic_dir / f"{username}_{timestamp}.jpg"
+        save_profile_picture(current_pic_url, str(archive_file))
+        
+        return {
+            "changed": True,
+            "type": "initial",
+            "message": f"Initial profile picture saved for {username}"
+        }
+    
+    # Compare with existing picture
+    if compare_profile_pictures(str(current_pic_file), str(new_pic_file)):
+        # No change
+        new_pic_file.unlink()
+        return {"changed": False}
+    else:
+        # Picture changed
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        old_archive = pic_dir / f"{username}_old_{timestamp}.jpg"
+        current_pic_file.rename(old_archive)
+        new_pic_file.rename(current_pic_file)
+        
+        # Save new version with timestamp
+        new_archive = pic_dir / f"{username}_{timestamp}.jpg"
+        save_profile_picture(current_pic_url, str(new_archive))
+        
+        return {
+            "changed": True,
+            "type": "update",
+            "message": f"Profile picture changed for {username}",
+            "old_file": str(old_archive),
+            "new_file": str(new_archive)
+        }
+
+# ---------- Enhanced Data Collection ----------
+
+def get_enhanced_profile_pic_urls(profile):
+    """Extract multiple profile picture URL options with better error handling"""
     urls = {}
     
     try:
-        # Try to get the standard profile pic URL
+        # Standard profile pic URL
         if hasattr(profile, 'profile_pic_url') and profile.profile_pic_url:
             url = str(profile.profile_pic_url)
-            # Clean up common URL issues
             if url and not url.startswith('http'):
                 url = 'https:' + url if url.startswith('//') else 'https://' + url
             urls['profile_pic_url'] = url
             
-        # Try to get HD version
+        # HD version
         if hasattr(profile, 'profile_pic_url_hd') and profile.profile_pic_url_hd:
             url_hd = str(profile.profile_pic_url_hd)
             if url_hd and not url_hd.startswith('http'):
                 url_hd = 'https:' + url_hd if url_hd.startswith('//') else 'https://' + url_hd
             urls['profile_pic_url_hd'] = url_hd
         
-        # Sometimes there's a different resolution available in the node
+        # Try node data
         if hasattr(profile, '_node') and profile._node:
             node = profile._node
-            if 'profile_pic_url' in node and node['profile_pic_url']:
-                url = str(node['profile_pic_url'])
-                if url and not url.startswith('http'):
-                    url = 'https:' + url if url.startswith('//') else 'https://' + url
-                urls['profile_pic_url'] = url
-                
-            if 'profile_pic_url_hd' in node and node['profile_pic_url_hd']:
-                url_hd = str(node['profile_pic_url_hd'])
-                if url_hd and not url_hd.startswith('http'):
-                    url_hd = 'https:' + url_hd if url_hd.startswith('//') else 'https://' + url_hd
-                urls['profile_pic_url_hd'] = url_hd
-                
-        # Log what we found
+            for key in ['profile_pic_url', 'profile_pic_url_hd']:
+                if key in node and node[key]:
+                    url = str(node[key])
+                    if url and not url.startswith('http'):
+                        url = 'https:' + url if url.startswith('//') else 'https://' + url
+                    urls[key] = url
+                    
         logger.debug(f"Extracted profile pic URLs: {urls}")
                 
     except Exception as e:
         logger.debug(f"Error extracting profile pic URLs: {e}")
     
-    # Ensure we always have fallback values
+    # Ensure fallback values
     if not urls.get('profile_pic_url'):
         urls['profile_pic_url'] = ''
     if not urls.get('profile_pic_url_hd'):
@@ -150,111 +268,8 @@ def get_profile_pic_urls(profile):
     
     return urls
 
-
-# ---------- Data collection methods ----------
-def try_web_scraping_method(username: str) -> dict | None:
-    try:
-        logger.info("Trying web scraping fallback method...")
-        session = requests.Session()
-        session.headers.update(
-            {
-                "User-Agent": get_random_user_agent(),
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Accept-Encoding": "gzip, deflate, br",
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-            }
-        )
-        retries = Retry(total=3, backoff_factor=0.8, status_forcelist=(429, 500, 502, 503, 504))
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-
-        time.sleep(random.uniform(1, 3))
-        url = f"https://www.instagram.com/{username}/"
-        resp = session.get(url, timeout=15)
-
-        if resp.status_code == 404:
-            raise ProfileNotExistsException(f"Profile {username} does not exist")
-        resp.raise_for_status()
-        html = resp.text
-
-        full_name = username
-        followers = following = posts = 0
-        bio = ""
-        is_private = False
-        is_verified = False
-        profile_pic_url = ""
-        profile_pic_url_hd = ""
-
-        # JSON-LD sometimes present
-        m_ld = re.search(r'<script type="application/ld\+json">([^<]+)</script>', html)
-        if m_ld:
-            try:
-                ld = json.loads(m_ld.group(1))
-                full_name = ld.get("name", full_name) or full_name
-            except json.JSONDecodeError:
-                pass
-
-        followers_match = re.search(r'"edge_followed_by":{"count":(\d+)}', html)
-        following_match = re.search(r'"edge_follow":{"count":(\d+)}', html)
-        posts_match = re.search(r'"edge_owner_to_timeline_media":{"count":(\d+)}', html)
-        name_match = re.search(r'"full_name":"([^"]*)"', html)
-        bio_match = re.search(r'"biography":"([^"]*)"', html)
-        private_match = re.search(r'"is_private":(true|false)', html)
-        verified_match = re.search(r'"is_verified":(true|false)', html)
-        
-        # FIXED: Better profile pic extraction from web scraping
-        pic_match = re.search(r'"profile_pic_url":"([^"]*)"', html)
-        pic_hd_match = re.search(r'"profile_pic_url_hd":"([^"]*)"', html)
-
-        full_name = _unescape(name_match.group(1)) if name_match else full_name
-        followers = int(followers_match.group(1)) if followers_match else followers
-        following = int(following_match.group(1)) if following_match else following
-        posts = int(posts_match.group(1)) if posts_match else posts
-        bio = _unescape(bio_match.group(1)).replace("\\n", "\n") if bio_match else bio
-        is_private = private_match.group(1) == "true" if private_match else is_private
-        is_verified = verified_match.group(1) == "true" if verified_match else is_verified
-        
-        # FIXED: Clean up profile pic URLs
-        if pic_match:
-            profile_pic_url = _unescape(pic_match.group(1))
-            if profile_pic_url and not profile_pic_url.startswith('http'):
-                profile_pic_url = 'https:' + profile_pic_url if profile_pic_url.startswith('//') else 'https://' + profile_pic_url
-        
-        if pic_hd_match:
-            profile_pic_url_hd = _unescape(pic_hd_match.group(1))
-            if profile_pic_url_hd and not profile_pic_url_hd.startswith('http'):
-                profile_pic_url_hd = 'https:' + profile_pic_url_hd if profile_pic_url_hd.startswith('//') else 'https://' + profile_pic_url_hd
-        else:
-            profile_pic_url_hd = profile_pic_url  # Fallback to normal if HD not found
-
-        return {
-            "username": username,
-            "full_name": full_name or username,
-            "followers": followers,
-            "following": following,
-            "posts": posts,
-            "bio": bio,
-            "is_private": is_private,
-            "is_verified": is_verified,
-            "profile_pic_url": profile_pic_url,
-            "profile_pic_url_hd": profile_pic_url_hd,
-            "method": "web_scraping",
-        }
-    except Exception as e:
-        logger.warning(f"Web scraping method failed: {e}")
-        return None
-
-
-def _make_instaloader() -> Instaloader:
-    L = Instaloader(quiet=True, download_videos=False, download_comments=False, save_metadata=False)
-    # Set UA on context; constructor UA is ignored by Instaloader
-    L.context.user_agent = get_random_user_agent()
-    return L
-
-
-def try_instaloader_with_session(username: str) -> dict | None:
+def try_authenticated_method(username: str) -> dict | None:
+    """Try authenticated Instagram access"""
     try:
         session_user = os.getenv("INSTAGRAM_SESSION_USERNAME")
         session_pass = os.getenv("INSTAGRAM_SESSION_PASSWORD")
@@ -263,7 +278,9 @@ def try_instaloader_with_session(username: str) -> dict | None:
             return None
 
         logger.info("Attempting authenticated Instagram access...")
-        L = _make_instaloader()
+        L = Instaloader(quiet=True, download_videos=False, download_comments=False, save_metadata=False)
+        L.context.user_agent = get_random_user_agent()
+        
         try:
             L.load_session_from_file(session_user)
             logger.info("Loaded existing session")
@@ -273,13 +290,9 @@ def try_instaloader_with_session(username: str) -> dict | None:
             if os.getenv("CI") != "true":
                 L.save_session_to_file()
                 logger.info("New session created and saved locally")
-            else:
-                logger.info("Running in CI - session not persisted")
 
         profile = Profile.from_username(L.context, username)
-
-        # FIXED: Use enhanced profile pic extraction
-        pic_urls = get_profile_pic_urls(profile)
+        pic_urls = get_enhanced_profile_pic_urls(profile)
 
         data = {
             "username": profile.username,
@@ -295,13 +308,9 @@ def try_instaloader_with_session(username: str) -> dict | None:
             "method": "authenticated_api",
         }
 
-        # Optional enrich
+        # Optional enrichment
         try:
             data["external_url"] = getattr(profile, "external_url", None)
-            if profile.mediacount:
-                post = next(profile.get_posts(), None)
-                if post:
-                    data["last_post_date"] = post.date_utc.replace(tzinfo=timezone.utc).isoformat()
         except Exception:
             pass
 
@@ -310,15 +319,15 @@ def try_instaloader_with_session(username: str) -> dict | None:
         logger.warning(f"Authenticated method failed: {e}")
         return None
 
-
-def try_instaloader_anonymous(username: str) -> dict | None:
+def try_anonymous_method(username: str) -> dict | None:
+    """Try anonymous Instagram access"""
     try:
         logger.info("Attempting anonymous Instagram access...")
-        L = _make_instaloader()
-        profile = Profile.from_username(L.context, username)
+        L = Instaloader(quiet=True, download_videos=False, download_comments=False, save_metadata=False)
+        L.context.user_agent = get_random_user_agent()
         
-        # FIXED: Use enhanced profile pic extraction
-        pic_urls = get_profile_pic_urls(profile)
+        profile = Profile.from_username(L.context, username)
+        pic_urls = get_enhanced_profile_pic_urls(profile)
         
         data = {
             "username": profile.username,
@@ -333,14 +342,7 @@ def try_instaloader_anonymous(username: str) -> dict | None:
             "profile_pic_url_hd": pic_urls.get('profile_pic_url_hd', ''),
             "method": "anonymous_api",
         }
-        try:
-            data["external_url"] = getattr(profile, "external_url", None)
-            if profile.mediacount:
-                post = next(profile.get_posts(), None)
-                if post:
-                    data["last_post_date"] = post.date_utc.replace(tzinfo=timezone.utc).isoformat()
-        except Exception:
-            pass
+        
         return data
     except LoginRequiredException:
         logger.warning("Anonymous method failed: Login required")
@@ -352,45 +354,136 @@ def try_instaloader_anonymous(username: str) -> dict | None:
         logger.warning(f"Anonymous method failed: {e}")
         return None
 
+def try_web_scraping_method(username: str) -> dict | None:
+    """Enhanced web scraping method with better error handling"""
+    try:
+        logger.info("Trying enhanced web scraping method...")
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": get_random_user_agent(),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+        })
+        
+        retries = Retry(total=5, backoff_factor=2.0, status_forcelist=(429, 500, 502, 503, 504))
+        session.mount("https://", HTTPAdapter(max_retries=retries))
 
-def create_fallback_data(username: str) -> dict:
-    logger.info("Creating fallback data structure...")
-    return {
-        "username": username,
-        "full_name": username,
-        "followers": 0,
-        "following": 0,
-        "posts": 0,
-        "bio": "",
-        "is_private": True,
-        "is_verified": False,
-        "profile_pic_url": "",
-        "profile_pic_url_hd": "",
-        "method": "fallback",
-        "error": "Unable to access profile data - may be private or restricted",
-    }
+        time.sleep(random.uniform(3, 8))
+        url = f"https://www.instagram.com/{username}/"
+        resp = session.get(url, timeout=20)
 
+        if resp.status_code == 404:
+            raise ProfileNotExistsException(f"Profile {username} does not exist")
+        resp.raise_for_status()
+        html = resp.text
 
-# ---------- Orchestration ----------
-def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: int = 100) -> bool:
-    """Fetch data; ALWAYS write monitoring_summary.json and quick_stats.json."""
+        # Extract data using regex patterns
+        patterns = {
+            "followers": r'"edge_followed_by":{"count":(\d+)}',
+            "following": r'"edge_follow":{"count":(\d+)}',
+            "posts": r'"edge_owner_to_timeline_media":{"count":(\d+)}',
+            "full_name": r'"full_name":"([^"]*)"',
+            "bio": r'"biography":"([^"]*)"',
+            "is_private": r'"is_private":(true|false)',
+            "is_verified": r'"is_verified":(true|false)',
+            "profile_pic_url": r'"profile_pic_url":"([^"]*)"',
+            "profile_pic_url_hd": r'"profile_pic_url_hd":"([^"]*)"'
+        }
+        
+        data = {
+            "username": username,
+            "full_name": username,
+            "followers": 0,
+            "following": 0,
+            "posts": 0,
+            "bio": "",
+            "is_private": False,
+            "is_verified": False,
+            "profile_pic_url": "",
+            "profile_pic_url_hd": "",
+            "method": "web_scraping",
+        }
+        
+        # Extract using patterns
+        for field, pattern in patterns.items():
+            match = re.search(pattern, html)
+            if match:
+                value = match.group(1)
+                if field in ["followers", "following", "posts"]:
+                    data[field] = int(value)
+                elif field in ["is_private", "is_verified"]:
+                    data[field] = value == "true"
+                elif field in ["profile_pic_url", "profile_pic_url_hd"]:
+                    value = value.replace('\\/', '/').replace('\\u0026', '&')
+                    if value and not value.startswith('http'):
+                        value = 'https:' + value if value.startswith('//') else 'https://' + value
+                    data[field] = value
+                else:
+                    data[field] = value.replace('\\n', '\n').replace('\\"', '"')
+
+        return data
+        
+    except Exception as e:
+        logger.warning(f"Enhanced web scraping method failed: {e}")
+        return None
+
+# ---------- Main Enhanced Function ----------
+
+def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", history_keep: int = 100) -> bool:
+    """Enhanced profile data fetching with change detection and notifications"""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     summary_file = output_path / "monitoring_summary.json"
     history_file = output_path / "monitoring_history.json"
     stats_file = output_path / "quick_stats.json"
+    changes_file = output_path / "changes_log.json"
 
-    historical_summary = load_historical_data(summary_file)
-    history_data = load_historical_data(history_file) or {"entries": [], "username": target_user}
+    # Load historical data
+    historical_summary = {}
+    if summary_file.exists():
+        try:
+            with open(summary_file, "r", encoding="utf-8") as f:
+                historical_summary = json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load historical data: {e}")
 
-    logger.info(f"Fetching data for: {target_user}")
+    history_data = {"entries": [], "username": target_user}
+    if history_file.exists():
+        try:
+            with open(history_file, "r", encoding="utf-8") as f:
+                history_data = json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load history data: {e}")
 
+    logger.info(f"Fetching enhanced data for: {target_user}")
+
+    # Try different methods to get profile data
     profile_data = (
-        try_instaloader_with_session(target_user)
-        or try_instaloader_anonymous(target_user)
+        try_authenticated_method(target_user)
+        or try_anonymous_method(target_user)
         or try_web_scraping_method(target_user)
-        or create_fallback_data(target_user)
+        or {
+            "username": target_user,
+            "full_name": target_user,
+            "followers": 0,
+            "following": 0,
+            "posts": 0,
+            "bio": "",
+            "is_private": True,
+            "is_verified": False,
+            "profile_pic_url": "",
+            "profile_pic_url_hd": "",
+            "method": "fallback",
+            "error": "Unable to access profile data"
+        }
     )
 
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -398,20 +491,23 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
         **profile_data,
         "timestamp": now_iso,
         "profile_url": f"https://instagram.com/{target_user}",
-        "external_url": profile_data.get("external_url", None),
-        "has_stories": False,
-        "story_count": 0,
-        "monitoring_session": profile_data.get("method") == "authenticated_api",
-        "last_post_date": profile_data.get("last_post_date", None),
-        "engagement_rate": 0.0,
         "data_collection_method": profile_data.get("method", "unknown"),
     }
 
-    # Detect & attach changes (based on last summary if present)
+    # Detect changes
     changes = detect_changes(current_data, historical_summary)
     current_data["changes"] = changes
 
-    # ------- QUICK STATS (always) -------
+    # Handle profile picture changes
+    if DETECT_PROFILE_CHANGES:
+        pic_url = current_data.get("profile_pic_url_hd") or current_data.get("profile_pic_url")
+        pic_result = detect_profile_picture_changes(target_user, pic_url, output_path)
+        if pic_result.get("changed"):
+            changes["changes_detected"].append(pic_result["message"])
+            changes["has_changes"] = True
+            logger.info(pic_result["message"])
+
+    # Save all data files
     quick_stats = {
         "username": current_data["username"],
         "followers": int(current_data.get("followers", 0) or 0),
@@ -423,13 +519,14 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
         "method": current_data.get("data_collection_method"),
         "profile_pic_url": current_data.get("profile_pic_url", ""),
         "profile_pic_url_hd": current_data.get("profile_pic_url_hd", ""),
+        "full_name": current_data.get("full_name", target_user),
+        "bio": current_data.get("bio", "")
     }
+    
     write_json_atomic(stats_file, quick_stats)
-
-    # ------- SUMMARY (always) -------
     write_json_atomic(summary_file, current_data)
 
-    # ------- HISTORY (always) -------
+    # Update history
     history_entry = {
         "timestamp": now_iso,
         "followers": quick_stats["followers"],
@@ -444,21 +541,43 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
     history_data["username"] = target_user
     write_json_atomic(history_file, history_data)
 
-    # Logs
-    logger.info("✅ Data collection completed successfully")
+    # Save changes log
+    if changes["has_changes"]:
+        changes_data = {"entries": []}
+        if changes_file.exists():
+            try:
+                with open(changes_file, "r", encoding="utf-8") as f:
+                    changes_data = json.load(f)
+            except Exception:
+                pass
+        
+        changes_data["entries"].append(changes)
+        changes_data["entries"] = changes_data["entries"][-50:]  # Keep last 50 changes
+        write_json_atomic(changes_file, changes_data)
+
+    # Send notifications if configured
+    if ENABLE_EMAIL_NOTIFICATIONS and changes["has_changes"]:
+        subject = f"Instagram Changes for @{target_user}"
+        body = f"Changes detected for @{target_user}:\n\n"
+        body += "\n".join(f"• {change}" for change in changes["changes_detected"])
+        body += f"\n\nTimestamp: {now_iso}"
+        
+        html_body = f"<h2>Changes detected for @{target_user}</h2><ul>"
+        html_body += "".join(f"<li>{change}</li>" for change in changes["changes_detected"])
+        html_body += f"</ul><p>Timestamp: {now_iso}</p>"
+        
+        send_email_notification(subject, body, html_body)
+
+    # Logging
+    logger.info("✅ Enhanced data collection completed successfully")
     logger.info(f"   Method used: {current_data['data_collection_method']}")
-    logger.info(f"   Output directory: {output_path.absolute()}")
     logger.info(f"   Profile: @{current_data['username']} ({current_data['full_name']})")
     logger.info(f"   Followers: {current_data['followers']:,}")
     logger.info(f"   Following: {current_data['following']:,}")
     logger.info(f"   Posts: {current_data['posts']:,}")
     logger.info(f"   Private: {current_data['is_private']}")
     logger.info(f"   Verified: {current_data['is_verified']}")
-    logger.info(f"   Profile pic URL: {current_data.get('profile_pic_url', 'None')[:100]}...")
-    logger.info(f"   Profile pic HD URL: {current_data.get('profile_pic_url_hd', 'None')[:100]}...")
-    if "error" in current_data:
-        logger.warning(f"   Note: {current_data['error']}")
-
+    
     if changes["has_changes"]:
         logger.info(f"   Changes detected: {len(changes['changes_detected'])}")
         for change in changes["changes_detected"]:
@@ -469,77 +588,59 @@ def fetch_profile_data(target_user: str, output_dir: str = "./", history_keep: i
     logger.info("   Generated files:")
     for file in sorted(output_path.glob("*.json")):
         logger.info(f"     • {file.name}")
+    
     return True
 
-
 # ---------- CLI ----------
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Monitor Instagram profile stats with multiple fallback methods",
+        description="Enhanced Instagram Monitor with advanced change detection",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python monitor.py --target-user dominance.information
-  python monitor.py --target-user cristiano --output-dir ./data/cristiano
-
-Environment Variables:
-  INSTAGRAM_SESSION_USERNAME - Instagram username for authenticated access
-  INSTAGRAM_SESSION_PASSWORD - Instagram password for authenticated access
-        """,
     )
     parser.add_argument("--target-user", required=True, help="Instagram username to monitor")
-    parser.add_argument(
-        "--output-dir",
-        default="./",
-        help="Output directory for data files (default: current directory). Pass per-user path, e.g. ./data/<user>",
-    )
+    parser.add_argument("--output-dir", default="./", help="Output directory for data files")
     parser.add_argument("--history-keep", type=int, default=100, help="Number of history entries to retain")
+    parser.add_argument("--enable-email", action="store_true", help="Enable email notifications")
+    parser.add_argument("--disable-profile-pics", action="store_true", help="Disable profile picture detection")
+    parser.add_argument("--enable-followers", action="store_true", help="Enable follower tracking (not recommended for CI)")
+    
     args = parser.parse_args()
+
+    global ENABLE_EMAIL_NOTIFICATIONS, SAVE_PROFILE_PICTURES, TRACK_FOLLOWERS
+    
+    if args.enable_email:
+        ENABLE_EMAIL_NOTIFICATIONS = True
+    
+    if args.disable_profile_pics:
+        SAVE_PROFILE_PICTURES = False
+        
+    if args.enable_followers:
+        TRACK_FOLLOWERS = True
 
     user = args.target_user.replace("@", "").strip()
     if not user:
         logger.error("Invalid username provided")
         sys.exit(1)
 
-    logger.info(f"Starting Instagram monitoring for: {user}")
+    logger.info(f"Starting enhanced Instagram monitoring for: {user}")
     logger.info(f"Output directory: {Path(args.output_dir).absolute()}")
-
-    if os.getenv("INSTAGRAM_SESSION_USERNAME"):
-        logger.info("Authentication credentials found - will attempt authenticated access")
-    else:
-        logger.info("No authentication credentials - will use anonymous mode.")
+    logger.info(f"Email notifications: {ENABLE_EMAIL_NOTIFICATIONS}")
+    logger.info(f"Profile picture detection: {SAVE_PROFILE_PICTURES}")
+    logger.info(f"Follower tracking: {TRACK_FOLLOWERS}")
 
     try:
-        ok = fetch_profile_data(user, args.output_dir, args.history_keep)
-        if not ok:
-            logger.error("❌ Instagram monitoring failed")
+        success = fetch_enhanced_profile_data(user, args.output_dir, args.history_keep)
+        if not success:
+            logger.error("❌ Enhanced Instagram monitoring failed")
             sys.exit(1)
-        logger.info("🎉 Instagram monitoring completed successfully!")
+        logger.info("🎉 Enhanced Instagram monitoring completed successfully!")
     except KeyboardInterrupt:
         logger.info("❌ Monitoring cancelled by user")
         sys.exit(1)
     except Exception as e:
-        # As a last resort, still write empty files so the UI doesn't break
-        out = Path(args.output_dir)
-        out.mkdir(parents=True, exist_ok=True)
-        now_iso = datetime.now(timezone.utc).isoformat()
-        fallback_quick = {
-            "username": user, "followers": 0, "following": 0, "posts": 0,
-            "last_updated": now_iso, "is_private": True, "is_verified": False,
-            "method": "fallback", "profile_pic_url": "", "profile_pic_url_hd": ""
-        }
-        write_json_atomic(out / "quick_stats.json", fallback_quick)
-        fallback_summary = {
-            **fallback_quick,
-            "full_name": user, "bio": "", "timestamp": now_iso,
-            "profile_url": f"https://instagram.com/{user}",
-            "data_collection_method": "fallback",
-            "changes": {"has_changes": False, "changes_detected": [], "timestamp": now_iso}
-        }
-        write_json_atomic(out / "monitoring_summary.json", fallback_summary)
         logger.error(f"❌ Unexpected error: {e}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
