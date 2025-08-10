@@ -26,7 +26,8 @@ from typing import Dict, List, Optional, Tuple
 
 # ---- External libs
 import requests
-from requests.adapters import HTTPAdapter, Retry
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 try:
     from instaloader import Instaloader, Profile, exceptions as igx
@@ -41,17 +42,22 @@ except Exception as e:
 def setup_logger(verbosity: int = 1) -> logging.Logger:
     logger = logging.getLogger("instagram_monitor")
     logger.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG if verbosity > 1 else logging.INFO)
     fmt = logging.Formatter("[%(levelname)s] %(message)s")
-    ch.setFormatter(fmt)
-    # Avoid duplicate handlers if reimported
-    if not logger.handlers:
+
+    # If handler already exists, just update it (prevents duplicates)
+    if logger.handlers:
+        ch = logger.handlers[0]
+        ch.setLevel(logging.DEBUG if verbosity > 1 else logging.INFO)
+        ch.setFormatter(fmt)
+    else:
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.DEBUG if verbosity > 1 else logging.INFO)
+        ch.setFormatter(fmt)
         logger.addHandler(ch)
+
     return logger
 
 logger = setup_logger()
-
 
 # =========================
 # Utilities
