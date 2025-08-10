@@ -1,12 +1,14 @@
-name: Fix It All
+name: PR: Production Hardening
+
 on:
   workflow_dispatch:
+
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  fix:
+  harden:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -14,22 +16,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply fixes (all in Node, no bash tricks)
+      - name: Apply all fixes
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require("fs");
             const path = require("path");
+            const core = require("@actions/core");
 
-            const ensureDir = p => fs.mkdirSync(p, { recursive: true });
             const exists = p => fs.existsSync(p);
             const read = p => fs.readFileSync(p, "utf8");
-            const write = (p, c) => { ensureDir(path.dirname(p)); fs.writeFileSync(p, c); };
-            const remove = p => { if (exists(p)) fs.rmSync(p, { recursive: true, force: true }); };
+            const write = (p, c) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, c); };
+            const rm = p => { if (exists(p)) fs.rmSync(p, { recursive: true, force: true }); };
 
-            // 1) monitor.py patches
+            let changes = [];
+
+            // 1) monitor.py: import + logger fixes
             if (exists("monitor.py")) {
               let t = read("monitor.py");
+              const before = t;
 
               // import fix
               t = t.replace(
@@ -37,7 +42,7 @@ jobs:
                 "from requests.adapters import HTTPAdapter\nfrom urllib3.util.retry import Retry"
               );
 
-              // logger fix (replace whole function body if present)
+              // logger fix (replace whole function)
               const loggerRe = /def setup_logger\(verbosity: int = 1\)[\s\S]*?return logger/;
               const newLogger =
 `def setup_logger(verbosity: int = 1) -> logging.Logger:
@@ -55,58 +60,71 @@ jobs:
         logger.addHandler(ch)
     return logger`;
 
-              if (loggerRe.test(t)) {
-                t = t.replace(loggerRe, newLogger);
-              }
+              if (loggerRe.test(t)) t = t.replace(loggerRe, newLogger);
 
-              write("monitor.py", t);
-              core.info("monitor.py patched");
+              if (t !== before) {
+                write("monitor.py", t);
+                changes.push("monitor.py");
+                core.info("Patched monitor.py (imports/logger).");
+              } else {
+                core.info("monitor.py already OK or patterns not found.");
+              }
             } else {
               core.info("monitor.py not found; skipping.");
             }
 
-            // 2) workflows: add `export INPUT` after the INPUT guard line
+            // 2) Workflows: ensure `export INPUT` after the INPUT guard wherever we "Build user matrix"
             const wfDir = ".github/workflows";
             if (exists(wfDir)) {
               for (const name of fs.readdirSync(wfDir)) {
                 if (!name.endsWith(".yml") && !name.endsWith(".yaml")) continue;
                 const p = path.join(wfDir, name);
                 let txt = read(p);
-                if (!/Build user matrix/.test(txt)) continue;
+                const before = txt;
 
-                if (!/export INPUT/.test(txt)) {
-                  const guard = /if \[ -z "\$INPUT" \]; then INPUT="therock"; fi/;
-                  if (guard.test(txt)) {
-                    txt = txt.replace(guard, m => `${m}\n          export INPUT`);
-                    write(p, txt);
-                    core.info(`Patched export INPUT in ${name}`);
-                  } else {
-                    core.info(`No INPUT guard found in ${name}; not patched.`);
-                  }
-                } else {
-                  core.info(`export INPUT already present in ${name}`);
+                if (/Build user matrix/.test(txt) && /if \[ -z "\$INPUT" \]; then INPUT="therock"; fi/.test(txt) && !/export INPUT/.test(txt)) {
+                  txt = txt.replace(
+                    /if \[ -z "\$INPUT" \]; then INPUT="therock"; fi/,
+                    'if [ -z "$INPUT" ]; then INPUT="therock"; fi\n          export INPUT'
+                  );
+                }
+
+                if (txt !== before) {
+                  write(p, txt);
+                  changes.push(p);
+                  core.info(`Patched export INPUT in ${name}`);
                 }
               }
             }
 
-            // 3) remove orphaned files
-            ["config_server.py","instagram_monitor_config.py","config.json.example","test_setup.py",
-             "instagram_profile_pic_empty.jpeg","placeholder_svg.svg"].forEach(remove);
+            // 3) Remove orphaned files
+            [
+              "config_server.py",
+              "instagram_monitor_config.py",
+              "config.json.example",
+              "test_setup.py",
+              "instagram_profile_pic_empty.jpeg",
+              "placeholder_svg.svg"
+            ].forEach(f => {
+              if (exists(f)) { rm(f); changes.push(f); core.info(`Removed ${f}`); }
+            });
 
-            // 4) remove tracked runtime data paths if present
-            remove("monitoring_data/therock");
+            // 4) Remove tracked runtime data
+            if (exists("monitoring_data/therock")) { rm("monitoring_data/therock"); changes.push("monitoring_data/therock"); }
             if (exists("data")) {
-              for (const f of fs.readdirSync("data")) remove(path.join("data", f));
+              for (const f of fs.readdirSync("data")) {
+                if (f !== ".gitkeep") { rm(path.join("data", f)); changes.push(`data/${f}`); }
+              }
             }
 
-            // 5) ensure dirs + .gitkeep
-            ensureDir("monitoring_data");
-            ensureDir("data");
-            write("monitoring_data/.gitkeep", "");
-            write("data/.gitkeep", "");
+            // 5) Ensure runtime dirs + .gitkeep
+            fs.mkdirSync("monitoring_data", { recursive: true });
+            fs.mkdirSync("data", { recursive: true });
+            if (!exists("monitoring_data/.gitkeep")) { write("monitoring_data/.gitkeep", ""); changes.push("monitoring_data/.gitkeep"); }
+            if (!exists("data/.gitkeep")) { write("data/.gitkeep", ""); changes.push("data/.gitkeep"); }
 
-            // 6) .gitignore
-            write(".gitignore",
+            // 6) .gitignore (idempotent write of the canonical contents)
+            const gitignore =
 `__pycache__/
 *.py[cod]
 .env
@@ -122,29 +140,30 @@ data/
 # Logs / OS
 *.log
 .DS_Store
-`);
+`;
+            if (!exists(".gitignore") || read(".gitignore") !== gitignore) {
+              write(".gitignore", gitignore);
+              changes.push(".gitignore");
+              core.info("Wrote .gitignore");
+            }
 
-            // 7) requirements.txt
-            write("requirements.txt",
+            // 7) requirements.txt (safe pins)
+            const reqs =
 `instaloader>=4.11
 requests>=2.31.0
 urllib3>=2.0.0
 python-dateutil>=2.8.2
 pytz>=2023.3
-`);
+`;
+            if (!exists("requirements.txt") || read("requirements.txt") !== reqs) {
+              write("requirements.txt", reqs);
+              changes.push("requirements.txt");
+              core.info("Wrote requirements.txt");
+            }
+
+            core.setOutput("changed", String(changes.length > 0));
 
       - name: Create Pull Request
+        if: steps.apply-all-fixes.outputs.changed == 'true'
+        id: cpr
         uses: peter-evans/create-pull-request@v6
-        with:
-          commit-message: "fix: workflow input, imports, logger; cleanup & ignore runtime data"
-          title: "Fix: monitor stability & repo hygiene (imports, INPUT export, logger, cleanup)"
-          body: |
-            This PR applies the repo-wide hardening and cleanup:
-            - Fix `monitor.py` Retry import and logger verbosity handler
-            - Ensure `export INPUT` wherever the user matrix is built
-            - Remove orphaned files and tracked runtime data
-            - Add `.gitignore`, placeholders, and `requirements.txt`
-
-            Verify by running the monitor with `users: bob` and checking output under `monitoring_data/bob/`.
-          branch: fix/monitor-stability
-          delete-branch: false
