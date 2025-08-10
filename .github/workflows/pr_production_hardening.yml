@@ -1,4 +1,4 @@
-name: PR: Production Hardening
+name: "PR - Production Hardening"
 
 on:
   workflow_dispatch:
@@ -24,26 +24,18 @@ jobs:
             const fs = require("fs");
             const path = require("path");
             const core = require("@actions/core");
-
             const exists = p => fs.existsSync(p);
             const read = p => fs.readFileSync(p, "utf8");
             const write = (p, c) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, c); };
             const rm = p => { if (exists(p)) fs.rmSync(p, { recursive: true, force: true }); };
-
             let changes = [];
 
-            // 1) monitor.py: import + logger fixes
+            // monitor.py: import + logger fixes
             if (exists("monitor.py")) {
               let t = read("monitor.py");
               const before = t;
-
-              // import fix
-              t = t.replace(
-                /from requests\.adapters import HTTPAdapter,\s*Retry/g,
-                "from requests.adapters import HTTPAdapter\nfrom urllib3.util.retry import Retry"
-              );
-
-              // logger fix (replace whole function)
+              t = t.replace(/from requests\.adapters import HTTPAdapter,\s*Retry/g,
+                            "from requests.adapters import HTTPAdapter\nfrom urllib3.util.retry import Retry");
               const loggerRe = /def setup_logger\(verbosity: int = 1\)[\s\S]*?return logger/;
               const newLogger =
 `def setup_logger(verbosity: int = 1) -> logging.Logger:
@@ -60,71 +52,42 @@ jobs:
         ch.setFormatter(fmt)
         logger.addHandler(ch)
     return logger`;
-
               if (loggerRe.test(t)) t = t.replace(loggerRe, newLogger);
-
-              if (t !== before) {
-                write("monitor.py", t);
-                changes.push("monitor.py");
-                core.info("Patched monitor.py (imports/logger).");
-              } else {
-                core.info("monitor.py already OK or patterns not found.");
-              }
-            } else {
-              core.info("monitor.py not found; skipping.");
+              if (t !== before) { write("monitor.py", t); changes.push("monitor.py"); }
             }
 
-            // 2) Workflows: ensure `export INPUT` after the INPUT guard wherever we "Build user matrix"
+            // workflows: ensure `export INPUT` where we "Build user matrix"
             const wfDir = ".github/workflows";
             if (exists(wfDir)) {
               for (const name of fs.readdirSync(wfDir)) {
                 if (!name.endsWith(".yml") && !name.endsWith(".yaml")) continue;
                 const p = path.join(wfDir, name);
-                let txt = read(p);
-                const before = txt;
-
-                if (/Build user matrix/.test(txt) && /if \[ -z "\$INPUT" \]; then INPUT="therock"; fi/.test(txt) && !/export INPUT/.test(txt)) {
-                  txt = txt.replace(
-                    /if \[ -z "\$INPUT" \]; then INPUT="therock"; fi/,
-                    'if [ -z "$INPUT" ]; then INPUT="therock"; fi\n          export INPUT'
-                  );
+                let txt = read(p); const before = txt;
+                if (/Build user matrix/.test(txt) &&
+                    /if \[ -z "\$INPUT" \]; then INPUT="therock"; fi/.test(txt) &&
+                    !/export INPUT/.test(txt)) {
+                  txt = txt.replace(/if \[ -z "\$INPUT" \]; then INPUT="therock"; fi/,
+                                    'if [ -z "$INPUT" ]; then INPUT="therock"; fi\n          export INPUT');
                 }
-
-                if (txt !== before) {
-                  write(p, txt);
-                  changes.push(p);
-                  core.info(`Patched export INPUT in ${name}`);
-                }
+                if (txt !== before) { write(p, txt); changes.push(p); }
               }
             }
 
-            // 3) Remove orphaned files
-            [
-              "config_server.py",
-              "instagram_monitor_config.py",
-              "config.json.example",
-              "test_setup.py",
-              "instagram_profile_pic_empty.jpeg",
-              "placeholder_svg.svg"
-            ].forEach(f => {
-              if (exists(f)) { rm(f); changes.push(f); core.info(`Removed ${f}`); }
-            });
+            // repo cleanup
+            ["config_server.py","instagram_monitor_config.py","config.json.example","test_setup.py",
+             "instagram_profile_pic_empty.jpeg","placeholder_svg.svg"].forEach(f => { if (exists(f)) { rm(f); changes.push(f); } });
 
-            // 4) Remove tracked runtime data
+            // remove tracked runtime data
             if (exists("monitoring_data/therock")) { rm("monitoring_data/therock"); changes.push("monitoring_data/therock"); }
-            if (exists("data")) {
-              for (const f of fs.readdirSync("data")) {
-                if (f !== ".gitkeep") { rm(path.join("data", f)); changes.push(`data/${f}`); }
-              }
-            }
+            if (exists("data")) for (const f of fs.readdirSync("data")) if (f !== ".gitkeep") { rm(path.join("data", f)); changes.push(`data/${f}`); }
 
-            // 5) Ensure runtime dirs + .gitkeep
+            // ensure dirs + .gitkeep
             fs.mkdirSync("monitoring_data", { recursive: true });
             fs.mkdirSync("data", { recursive: true });
-            if (!exists("monitoring_data/.gitkeep")) { write("monitoring_data/.gitkeep", ""); changes.push("monitoring_data/.gitkeep"); }
-            if (!exists("data/.gitkeep")) { write("data/.gitkeep", ""); changes.push("data/.gitkeep"); }
+            if (!exists("monitoring_data/.gitkeep")) { write("monitoring_data/.gitkeep",""); changes.push("monitoring_data/.gitkeep"); }
+            if (!exists("data/.gitkeep")) { write("data/.gitkeep",""); changes.push("data/.gitkeep"); }
 
-            // 6) .gitignore (canonical contents)
+            // .gitignore
             const gitignore =
 `__pycache__/
 *.py[cod]
@@ -142,13 +105,9 @@ data/
 *.log
 .DS_Store
 `;
-            if (!exists(".gitignore") || read(".gitignore") !== gitignore) {
-              write(".gitignore", gitignore);
-              changes.push(".gitignore");
-              core.info("Wrote .gitignore");
-            }
+            if (!exists(".gitignore") || read(".gitignore") !== gitignore) { write(".gitignore", gitignore); changes.push(".gitignore"); }
 
-            // 7) requirements.txt (safe pins)
+            // requirements
             const reqs =
 `instaloader>=4.11
 requests>=2.31.0
@@ -156,30 +115,24 @@ urllib3>=2.0.0
 python-dateutil>=2.8.2
 pytz>=2023.3
 `;
-            if (!exists("requirements.txt") || read("requirements.txt") !== reqs) {
-              write("requirements.txt", reqs);
-              changes.push("requirements.txt");
-              core.info("Wrote requirements.txt");
-            }
+            if (!exists("requirements.txt") || read("requirements.txt") !== reqs) { write("requirements.txt", reqs); changes.push("requirements.txt"); }
 
             core.setOutput("changed", String(changes.length > 0));
 
       - name: Create Pull Request
         if: steps.apply-all-fixes.outputs.changed == 'true'
-        id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "fix: production hardening (imports/logger), workflow input export, cleanup & hygiene"
           title: "Fix: production hardening & workflow hygiene"
           body: |
-            This PR:
-            - Fixes `monitor.py` imports (`Retry` from `urllib3.util.retry`) and logger handler update
+            - Fixes `monitor.py` imports and logger handler update
             - Ensures `export INPUT` wherever the user matrix is built
             - Removes orphaned files and tracked runtime data
             - Adds `.gitignore` to keep outputs out of git
             - Pins `requirements.txt` to safe versions
           branch: fix/production-hardening
 
-      - name: No-op (nothing to change)
+      - name: No-op
         if: steps.apply-all-fixes.outputs.changed != 'true'
         run: echo "No changes needed; repo already hardened."
