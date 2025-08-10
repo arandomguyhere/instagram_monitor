@@ -3,10 +3,12 @@
   "followers": 0,
   "following": 0,
   "posts": 0,
-  "last_updated": "2025-08-10T02:06:39.405935+00:00",
-  "is_private": true,
+  "last_updated": "2025-08-10T02:19:59.378206+00:00",
+  "is_private": false,
   "is_verified": false,
-  "method": "fallback",
+  "method": "web_scraping",
   "profile_pic_url": "",
-  "profile_pic_url_hd": ""
+  "profile_pic_url_hd": "",
+  "full_name": "dominance.information",
+  "bio": ""
 }
