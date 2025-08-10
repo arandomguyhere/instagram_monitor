@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced Instagram Monitor - Combines your existing system with advanced features
+Enhanced Instagram Monitor - Now with Friends List functionality
 """
 
 import argparse
@@ -41,8 +41,10 @@ RECEIVER_EMAIL = ""
 
 DETECT_PROFILE_CHANGES = True
 SAVE_PROFILE_PICTURES = True
-TRACK_FOLLOWERS = False  # Disabled by default for GitHub Actions
+TRACK_FOLLOWERS = True  # Now enabled by default for friends list
+TRACK_FOLLOWINGS = True  # Now enabled by default for friends list
 TRACK_POSTS = True
+SHOW_FRIENDS_LIST = True  # New option for friends list
 
 # Enhanced logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -169,6 +171,155 @@ def detect_changes(current_data: dict, historical_data: dict) -> dict:
         changes["has_changes"] = True
     
     return changes
+
+# ---------- Friends List Functions ----------
+
+def get_followers_list(profile) -> list:
+    """Get list of followers"""
+    try:
+        return [follower.username for follower in profile.get_followers()]
+    except Exception as e:
+        logger.error(f"Failed to get followers: {e}")
+        return []
+
+def get_followings_list(profile) -> list:
+    """Get list of followings"""
+    try:
+        return [followee.username for followee in profile.get_followees()]
+    except Exception as e:
+        logger.error(f"Failed to get followings: {e}")
+        return []
+
+def find_mutual_friends(followers: list, followings: list) -> list:
+    """Find mutual friends (people who follow and are followed by the user)"""
+    return list(set(followers) & set(followings))
+
+def analyze_friend_changes(current_followers: list, previous_followers: list, 
+                          current_followings: list, previous_followings: list) -> dict:
+    """Analyze changes in friends lists"""
+    changes = {
+        "new_followers": list(set(current_followers) - set(previous_followers)),
+        "lost_followers": list(set(previous_followers) - set(current_followers)),
+        "new_followings": list(set(current_followings) - set(previous_followings)),
+        "unfollowed": list(set(previous_followings) - set(current_followings)),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    return changes
+
+def save_friends_data(username: str, followers: list, followings: list, output_dir: Path) -> None:
+    """Save friends data to files"""
+    followers_file = output_dir / f"{username}_followers.json"
+    followings_file = output_dir / f"{username}_followings.json"
+    friends_file = output_dir / f"{username}_friends_analysis.json"
+    
+    # Save followers and followings
+    followers_data = {
+        "count": len(followers),
+        "list": followers,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    followings_data = {
+        "count": len(followings),
+        "list": followings,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    write_json_atomic(followers_file, followers_data)
+    write_json_atomic(followings_file, followings_data)
+    
+    # Create friends analysis
+    mutual_friends = find_mutual_friends(followers, followings)
+    friends_analysis = {
+        "username": username,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "stats": {
+            "followers_count": len(followers),
+            "followings_count": len(followings),
+            "mutual_friends_count": len(mutual_friends),
+            "follower_following_ratio": round(len(followers) / len(followings), 2) if followings else 0
+        },
+        "mutual_friends": mutual_friends,
+        "followers_only": list(set(followers) - set(followings)),
+        "followings_only": list(set(followings) - set(followers))
+    }
+    
+    write_json_atomic(friends_file, friends_analysis)
+    logger.info(f"Friends data saved for {username}")
+
+def load_previous_friends_data(username: str, output_dir: Path) -> tuple:
+    """Load previous friends data"""
+    followers_file = output_dir / f"{username}_followers.json"
+    followings_file = output_dir / f"{username}_followings.json"
+    
+    previous_followers = []
+    previous_followings = []
+    
+    try:
+        if followers_file.exists():
+            with open(followers_file, 'r', encoding="utf-8") as f:
+                data = json.load(f)
+                previous_followers = data.get("list", [])
+    except Exception as e:
+        logger.warning(f"Failed to load previous followers: {e}")
+    
+    try:
+        if followings_file.exists():
+            with open(followings_file, 'r', encoding="utf-8") as f:
+                data = json.load(f)
+                previous_followings = data.get("list", [])
+    except Exception as e:
+        logger.warning(f"Failed to load previous followings: {e}")
+    
+    return previous_followers, previous_followings
+
+def display_friends_analysis(username: str, output_dir: Path) -> None:
+    """Display friends analysis"""
+    friends_file = output_dir / f"{username}_friends_analysis.json"
+    
+    if not friends_file.exists():
+        logger.warning("No friends analysis data found")
+        return
+    
+    try:
+        with open(friends_file, 'r', encoding="utf-8") as f:
+            data = json.load(f)
+        
+        print("\n" + "="*60)
+        print(f"FRIENDS LIST ANALYSIS FOR @{username}")
+        print("="*60)
+        
+        stats = data.get("stats", {})
+        print(f"📊 STATISTICS:")
+        print(f"   Followers: {stats.get('followers_count', 0):,}")
+        print(f"   Following: {stats.get('followings_count', 0):,}")
+        print(f"   Mutual Friends: {stats.get('mutual_friends_count', 0):,}")
+        print(f"   Follower/Following Ratio: {stats.get('follower_following_ratio', 0)}")
+        
+        mutual_friends = data.get("mutual_friends", [])
+        if mutual_friends:
+            print(f"\n🤝 MUTUAL FRIENDS ({len(mutual_friends)}):")
+            for i, friend in enumerate(mutual_friends[:20], 1):  # Show first 20
+                print(f"   {i:2d}. @{friend}")
+            if len(mutual_friends) > 20:
+                print(f"   ... and {len(mutual_friends) - 20} more")
+        
+        followers_only = data.get("followers_only", [])
+        if followers_only:
+            print(f"\n👥 FOLLOWERS ONLY ({len(followers_only)}) [showing first 10]:")
+            for i, follower in enumerate(followers_only[:10], 1):
+                print(f"   {i:2d}. @{follower}")
+        
+        followings_only = data.get("followings_only", [])
+        if followings_only:
+            print(f"\n👤 FOLLOWING ONLY ({len(followings_only)}) [showing first 10]:")
+            for i, following in enumerate(followings_only[:10], 1):
+                print(f"   {i:2d}. @{following}")
+        
+        print("="*60)
+        
+    except Exception as e:
+        logger.error(f"Failed to display friends analysis: {e}")
 
 # ---------- Enhanced Profile Picture Detection ----------
 
@@ -306,6 +457,7 @@ def try_authenticated_method(username: str) -> dict | None:
             "profile_pic_url": pic_urls.get('profile_pic_url', ''),
             "profile_pic_url_hd": pic_urls.get('profile_pic_url_hd', ''),
             "method": "authenticated_api",
+            "profile_object": profile  # Pass the profile object for friends list access
         }
 
         # Optional enrichment
@@ -341,6 +493,7 @@ def try_anonymous_method(username: str) -> dict | None:
             "profile_pic_url": pic_urls.get('profile_pic_url', ''),
             "profile_pic_url_hd": pic_urls.get('profile_pic_url_hd', ''),
             "method": "anonymous_api",
+            "profile_object": profile  # Pass the profile object
         }
         
         return data
@@ -409,6 +562,7 @@ def try_web_scraping_method(username: str) -> dict | None:
             "profile_pic_url": "",
             "profile_pic_url_hd": "",
             "method": "web_scraping",
+            "profile_object": None  # No profile object available for web scraping
         }
         
         # Extract using patterns
@@ -436,8 +590,8 @@ def try_web_scraping_method(username: str) -> dict | None:
 
 # ---------- Main Enhanced Function ----------
 
-def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", history_keep: int = 100) -> bool:
-    """Enhanced profile data fetching with change detection and notifications"""
+def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", history_keep: int = 100, show_friends: bool = False) -> bool:
+    """Enhanced profile data fetching with change detection, notifications and friends list"""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -482,7 +636,8 @@ def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", histor
             "profile_pic_url": "",
             "profile_pic_url_hd": "",
             "method": "fallback",
-            "error": "Unable to access profile data"
+            "error": "Unable to access profile data",
+            "profile_object": None
         }
     )
 
@@ -493,6 +648,9 @@ def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", histor
         "profile_url": f"https://instagram.com/{target_user}",
         "data_collection_method": profile_data.get("method", "unknown"),
     }
+
+    # Remove profile_object from data before saving (not JSON serializable)
+    profile_object = current_data.pop("profile_object", None)
 
     # Detect changes
     changes = detect_changes(current_data, historical_summary)
@@ -506,6 +664,65 @@ def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", histor
             changes["changes_detected"].append(pic_result["message"])
             changes["has_changes"] = True
             logger.info(pic_result["message"])
+
+    # Handle friends list functionality
+    if SHOW_FRIENDS_LIST and profile_object and not current_data.get("is_private", False):
+        logger.info("Processing friends list...")
+        
+        # Load previous friends data
+        previous_followers, previous_followings = load_previous_friends_data(target_user, output_path)
+        
+        # Get current friends data
+        current_followers = get_followers_list(profile_object) if TRACK_FOLLOWERS else []
+        current_followings = get_followings_list(profile_object) if TRACK_FOLLOWINGS else []
+        
+        # Save current friends data
+        if current_followers or current_followings:
+            save_friends_data(target_user, current_followers, current_followings, output_path)
+            
+            # Analyze changes
+            if previous_followers or previous_followings:
+                friend_changes = analyze_friend_changes(
+                    current_followers, previous_followers,
+                    current_followings, previous_followings
+                )
+                
+                # Log significant changes
+                if friend_changes["new_followers"]:
+                    changes["changes_detected"].append(f"New followers: {len(friend_changes['new_followers'])}")
+                    changes["has_changes"] = True
+                    
+                if friend_changes["lost_followers"]:
+                    changes["changes_detected"].append(f"Lost followers: {len(friend_changes['lost_followers'])}")
+                    changes["has_changes"] = True
+                    
+                if friend_changes["new_followings"]:
+                    changes["changes_detected"].append(f"New followings: {len(friend_changes['new_followings'])}")
+                    changes["has_changes"] = True
+                    
+                if friend_changes["unfollowed"]:
+                    changes["changes_detected"].append(f"Unfollowed: {len(friend_changes['unfollowed'])}")
+                    changes["has_changes"] = True
+                
+                # Save friend changes to changes log
+                if changes["has_changes"]:
+                    friend_changes_file = output_path / "friend_changes_log.json"
+                    friend_changes_data = {"entries": []}
+                    
+                    if friend_changes_file.exists():
+                        try:
+                            with open(friend_changes_file, "r", encoding="utf-8") as f:
+                                friend_changes_data = json.load(f)
+                        except Exception:
+                            pass
+                    
+                    friend_changes_data["entries"].append(friend_changes)
+                    friend_changes_data["entries"] = friend_changes_data["entries"][-50:]  # Keep last 50
+                    write_json_atomic(friend_changes_file, friend_changes_data)
+            
+            # Display friends analysis if requested
+            if show_friends:
+                display_friends_analysis(target_user, output_path)
 
     # Save all data files
     quick_stats = {
@@ -591,46 +808,247 @@ def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", histor
     
     return True
 
+# ---------- Friends List CLI Commands ----------
+
+def show_friends_list_command(target_user: str, output_dir: str = "./") -> bool:
+    """Command to show friends list analysis"""
+    output_path = Path(output_dir)
+    
+    # Check if friends data exists
+    friends_file = output_path / f"{target_user}_friends_analysis.json"
+    if not friends_file.exists():
+        logger.error(f"No friends data found for {target_user}. Run monitor first with --friends option.")
+        return False
+    
+    display_friends_analysis(target_user, output_path)
+    return True
+
+def export_friends_list(target_user: str, output_dir: str = "./", format_type: str = "json") -> bool:
+    """Export friends list in different formats"""
+    output_path = Path(output_dir)
+    friends_file = output_path / f"{target_user}_friends_analysis.json"
+    
+    if not friends_file.exists():
+        logger.error(f"No friends data found for {target_user}")
+        return False
+    
+    try:
+        with open(friends_file, 'r', encoding="utf-8") as f:
+            data = json.load(f)
+        
+        if format_type.lower() == "csv":
+            import csv
+            csv_file = output_path / f"{target_user}_friends_export.csv"
+            
+            with open(csv_file, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(['Username', 'Category', 'Profile_URL'])
+                
+                # Write mutual friends
+                for friend in data.get("mutual_friends", []):
+                    writer.writerow([friend, 'Mutual Friend', f'https://instagram.com/{friend}'])
+                
+                # Write followers only
+                for follower in data.get("followers_only", []):
+                    writer.writerow([follower, 'Follower Only', f'https://instagram.com/{follower}'])
+                
+                # Write followings only
+                for following in data.get("followings_only", []):
+                    writer.writerow([following, 'Following Only', f'https://instagram.com/{following}'])
+            
+            logger.info(f"Friends list exported to CSV: {csv_file}")
+            
+        elif format_type.lower() == "txt":
+            txt_file = output_path / f"{target_user}_friends_export.txt"
+            
+            with open(txt_file, 'w', encoding='utf-8') as txtfile:
+                txtfile.write(f"FRIENDS LIST FOR @{target_user}\n")
+                txtfile.write("="*50 + "\n\n")
+                
+                stats = data.get("stats", {})
+                txtfile.write(f"STATISTICS:\n")
+                txtfile.write(f"Followers: {stats.get('followers_count', 0):,}\n")
+                txtfile.write(f"Following: {stats.get('followings_count', 0):,}\n")
+                txtfile.write(f"Mutual Friends: {stats.get('mutual_friends_count', 0):,}\n\n")
+                
+                txtfile.write(f"MUTUAL FRIENDS ({len(data.get('mutual_friends', []))}):\n")
+                for friend in data.get("mutual_friends", []):
+                    txtfile.write(f"@{friend}\n")
+                
+                txtfile.write(f"\nFOLLOWERS ONLY ({len(data.get('followers_only', []))}):\n")
+                for follower in data.get("followers_only", []):
+                    txtfile.write(f"@{follower}\n")
+                
+                txtfile.write(f"\nFOLLOWING ONLY ({len(data.get('followings_only', []))}):\n")
+                for following in data.get("followings_only", []):
+                    txtfile.write(f"@{following}\n")
+            
+            logger.info(f"Friends list exported to TXT: {txt_file}")
+        
+        else:  # JSON format
+            json_file = output_path / f"{target_user}_friends_export.json"
+            write_json_atomic(json_file, data)
+            logger.info(f"Friends list exported to JSON: {json_file}")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to export friends list: {e}")
+        return False
+
+def compare_friends_over_time(target_user: str, output_dir: str = "./") -> bool:
+    """Compare friends changes over time"""
+    output_path = Path(output_dir)
+    changes_file = output_path / "friend_changes_log.json"
+    
+    if not changes_file.exists():
+        logger.error(f"No friend changes data found for {target_user}")
+        return False
+    
+    try:
+        with open(changes_file, 'r', encoding="utf-8") as f:
+            data = json.load(f)
+        
+        entries = data.get("entries", [])
+        if not entries:
+            logger.info("No friend changes recorded yet")
+            return True
+        
+        print("\n" + "="*60)
+        print(f"FRIENDS CHANGES TIMELINE FOR @{target_user}")
+        print("="*60)
+        
+        for i, entry in enumerate(reversed(entries[-10:]), 1):  # Show last 10 changes
+            timestamp = entry.get("timestamp", "Unknown")
+            date_str = timestamp.split("T")[0] if "T" in timestamp else timestamp
+            
+            print(f"\n{i:2d}. {date_str}")
+            print("-" * 30)
+            
+            if entry.get("new_followers"):
+                print(f"   📈 New Followers ({len(entry['new_followers'])}): {', '.join(entry['new_followers'][:5])}")
+                if len(entry['new_followers']) > 5:
+                    print(f"      ... and {len(entry['new_followers']) - 5} more")
+            
+            if entry.get("lost_followers"):
+                print(f"   📉 Lost Followers ({len(entry['lost_followers'])}): {', '.join(entry['lost_followers'][:5])}")
+                if len(entry['lost_followers']) > 5:
+                    print(f"      ... and {len(entry['lost_followers']) - 5} more")
+            
+            if entry.get("new_followings"):
+                print(f"   ➕ New Followings ({len(entry['new_followings'])}): {', '.join(entry['new_followings'][:5])}")
+                if len(entry['new_followings']) > 5:
+                    print(f"      ... and {len(entry['new_followings']) - 5} more")
+            
+            if entry.get("unfollowed"):
+                print(f"   ➖ Unfollowed ({len(entry['unfollowed'])}): {', '.join(entry['unfollowed'][:5])}")
+                if len(entry['unfollowed']) > 5:
+                    print(f"      ... and {len(entry['unfollowed']) - 5} more")
+        
+        print("="*60)
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to compare friends over time: {e}")
+        return False
+
 # ---------- CLI ----------
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Enhanced Instagram Monitor with advanced change detection",
+        description="Enhanced Instagram Monitor with Friends List functionality",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Basic monitoring
+  python monitor.py --target-user username
+  
+  # Monitor with friends list
+  python monitor.py --target-user username --friends
+  
+  # Show existing friends analysis
+  python monitor.py --target-user username --show-friends
+  
+  # Export friends list
+  python monitor.py --target-user username --export-friends csv
+  
+  # Compare friends changes over time
+  python monitor.py --target-user username --friends-timeline
+        """
     )
+    
     parser.add_argument("--target-user", required=True, help="Instagram username to monitor")
     parser.add_argument("--output-dir", default="./", help="Output directory for data files")
     parser.add_argument("--history-keep", type=int, default=100, help="Number of history entries to retain")
+    
+    # Email settings
     parser.add_argument("--enable-email", action="store_true", help="Enable email notifications")
     parser.add_argument("--disable-profile-pics", action="store_true", help="Disable profile picture detection")
-    parser.add_argument("--enable-followers", action="store_true", help="Enable follower tracking (not recommended for CI)")
+    
+    # Friends list options
+    parser.add_argument("--friends", action="store_true", help="Enable friends list tracking and analysis")
+    parser.add_argument("--show-friends", action="store_true", help="Show friends list analysis (no monitoring)")
+    parser.add_argument("--export-friends", choices=["json", "csv", "txt"], help="Export friends list in specified format")
+    parser.add_argument("--friends-timeline", action="store_true", help="Show friends changes over time")
+    parser.add_argument("--disable-followers", action="store_true", help="Disable follower tracking (for friends list)")
+    parser.add_argument("--disable-followings", action="store_true", help="Disable following tracking (for friends list)")
     
     args = parser.parse_args()
 
-    global ENABLE_EMAIL_NOTIFICATIONS, SAVE_PROFILE_PICTURES, TRACK_FOLLOWERS
+    global ENABLE_EMAIL_NOTIFICATIONS, SAVE_PROFILE_PICTURES, TRACK_FOLLOWERS, TRACK_FOLLOWINGS, SHOW_FRIENDS_LIST
     
     if args.enable_email:
         ENABLE_EMAIL_NOTIFICATIONS = True
     
     if args.disable_profile_pics:
         SAVE_PROFILE_PICTURES = False
+    
+    if args.disable_followers:
+        TRACK_FOLLOWERS = False
         
-    if args.enable_followers:
-        TRACK_FOLLOWERS = True
+    if args.disable_followings:
+        TRACK_FOLLOWINGS = False
+    
+    if args.friends:
+        SHOW_FRIENDS_LIST = True
 
     user = args.target_user.replace("@", "").strip()
     if not user:
         logger.error("Invalid username provided")
         sys.exit(1)
 
+    # Handle specific commands
+    if args.show_friends:
+        logger.info(f"Showing friends list analysis for: {user}")
+        success = show_friends_list_command(user, args.output_dir)
+        sys.exit(0 if success else 1)
+    
+    if args.export_friends:
+        logger.info(f"Exporting friends list for: {user} (format: {args.export_friends})")
+        success = export_friends_list(user, args.output_dir, args.export_friends)
+        sys.exit(0 if success else 1)
+    
+    if args.friends_timeline:
+        logger.info(f"Showing friends timeline for: {user}")
+        success = compare_friends_over_time(user, args.output_dir)
+        sys.exit(0 if success else 1)
+
+    # Main monitoring
     logger.info(f"Starting enhanced Instagram monitoring for: {user}")
     logger.info(f"Output directory: {Path(args.output_dir).absolute()}")
     logger.info(f"Email notifications: {ENABLE_EMAIL_NOTIFICATIONS}")
     logger.info(f"Profile picture detection: {SAVE_PROFILE_PICTURES}")
+    logger.info(f"Friends list tracking: {SHOW_FRIENDS_LIST}")
     logger.info(f"Follower tracking: {TRACK_FOLLOWERS}")
+    logger.info(f"Following tracking: {TRACK_FOLLOWINGS}")
 
     try:
-        success = fetch_enhanced_profile_data(user, args.output_dir, args.history_keep)
+        success = fetch_enhanced_profile_data(
+            user, 
+            args.output_dir, 
+            args.history_keep, 
+            show_friends=args.friends
+        )
         if not success:
             logger.error("❌ Enhanced Instagram monitoring failed")
             sys.exit(1)
