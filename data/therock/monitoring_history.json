@@ -151,8 +151,16 @@
       "posts": 8133,
       "is_private": false,
       "method": "anonymous_api"
+    },
+    {
+      "timestamp": "2025-08-10T03:11:38.951339+00:00",
+      "followers": 392938942,
+      "following": 174,
+      "posts": 8133,
+      "is_private": false,
+      "method": "anonymous_api"
     }
   ],
   "username": "therock",
-  "last_updated": "2025-08-10T02:56:50.649621+00:00"
+  "last_updated": "2025-08-10T03:11:38.951339+00:00"
 }

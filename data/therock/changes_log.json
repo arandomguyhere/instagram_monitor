@@ -37,6 +37,13 @@
         "First time monitoring this user"
       ],
       "timestamp": "2025-08-10T02:56:50.649644+00:00"
+    },
+    {
+      "has_changes": true,
+      "changes_detected": [
+        "First time monitoring this user"
+      ],
+      "timestamp": "2025-08-10T03:11:38.951358+00:00"
     }
   ]
 }
