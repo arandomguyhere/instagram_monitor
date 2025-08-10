@@ -1,84 +1,21 @@
-# Instagram Monitor - .gitignore
-
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.venv
+venv/
+
+# Data outputs
+monitoring_data/
+data/
+!monitoring_data/.gitkeep
+!data/.gitkeep
 
 # IDE
 .vscode/
 .idea/
 *.swp
-*.swo
-*~
-
-# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
 # Logs
 *.log
-logs/
-
-# Session files (these will be created by instaloader)
-session-*
-
-# Local development
-local_config.py
-test_data/
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# Backup files
-*.bak
-*.backup
-
-# Keep data directory but ignore specific files
-# (data folder structure is kept for GitHub Actions)
-!data/.gitkeep
-
-# Keep assets directory
-!assets/.gitkeep
-
-# Generated site files (GitHub Pages will handle these)
-_site/
-
-# Monitoring summary (sensitive information)
-monitoring_summary.json
-
-# Local testing
-test_monitor.py
