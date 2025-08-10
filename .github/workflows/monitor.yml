@@ -8,7 +8,7 @@ on:
         required: false
         default: "therock"
   schedule:
-    - cron: "0 */6 * * *"  # every 6 hours
+    - cron: "0 */6 * * *"
 
 concurrency:
   group: instagram-monitor
@@ -29,14 +29,7 @@ jobs:
         run: |
           INPUT="${{ github.event.inputs.users }}"
           if [ -z "$INPUT" ]; then INPUT="therock"; fi
-          python - << 'PY'
-import os, json
-raw = os.environ.get("INPUT","").strip()
-users = [u.strip().lstrip("@") for u in raw.split(",") if u.strip()]
-arr = json.dumps(users if users else ["therock"])
-with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
-    f.write(f"user_matrix={arr}\n")
-PY
+          python3 -c "import os,json; raw=os.environ.get('INPUT','').strip(); users=[u.strip().lstrip('@') for u in raw.split(',') if u.strip()]; arr=json.dumps(users if users else ['therock']); open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8').write('user_matrix='+arr+'\n')"
 
   monitor:
     needs: plan
