@@ -7,6 +7,14 @@ on:
         description: "Comma-separated usernames (no @). Leave blank for default."
         required: false
         default: "therock"
+      shortcode:
+        description: "Optional: post/reel shortcode to fetch (e.g., CxYz123)"
+        required: false
+        default: ""
+      prefer_mobile:
+        description: "Prefer mobile web JSON fallback for profiles"
+        required: false
+        default: "false"
   schedule:
     - cron: "0 */6 * * *"
 
@@ -16,6 +24,8 @@ concurrency:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   plan:
@@ -29,7 +39,13 @@ jobs:
         run: |
           INPUT="${{ github.event.inputs.users }}"
           if [ -z "$INPUT" ]; then INPUT="therock"; fi
-          python3 -c "import os,json; raw=os.environ.get('INPUT','').strip(); users=[u.strip().lstrip('@') for u in raw.split(',') if u.strip()]; arr=json.dumps(users if users else ['therock']); open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8').write('user_matrix='+arr+'\n')"
+          python3 - <<'PY'
+import os, json, sys
+raw = os.environ.get("INPUT","").strip()
+users = [u.strip().lstrip("@") for u in raw.split(",") if u.strip()]
+arr = json.dumps(users if users else ["therock"])
+open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8").write("user_matrix="+arr+"\n")
+PY
 
   monitor:
     needs: plan
@@ -60,34 +76,84 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run monitor
+      - name: Run monitor (auto unauth if no creds)
         env:
           INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_SESSION_USERNAME }}
           INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}
           CI: "true"
+        shell: bash
         run: |
           USERNAME='${{ matrix.user }}'
           OUT="monitoring_data/${USERNAME}"
           mkdir -p "$OUT"
-          python monitor.py --mode monitor --target-user "$USERNAME" --output-dir "$OUT"
+
+          FLAGS="--download-pfp"
+          # Prefer mobile fallback if requested
+          if [ "${{ github.event.inputs.prefer_mobile }}" = "true" ]; then
+            FLAGS="$FLAGS --prefer-mobile"
+          fi
+          # If creds missing, use unauth-only
+          if [ -z "${INSTAGRAM_SESSION_USERNAME}" ] || [ -z "${INSTAGRAM_SESSION_PASSWORD}" ]; then
+            echo "[info] No IG creds detected; using --unauth-only"
+            FLAGS="$FLAGS --unauth-only"
+          fi
+
+          echo "Running: python monitor.py --mode monitor --target-user '$USERNAME' --output-dir '$OUT' $FLAGS"
+          python monitor.py \
+            --mode monitor \
+            --target-user "$USERNAME" \
+            --output-dir "$OUT" \
+            $FLAGS
 
       - name: Commit changes (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update IG data for ${{ matrix.user }}"
-          file_pattern: monitoring_data/**/*.json
+          file_pattern: |
+            monitoring_data/**/*.json
+            monitoring_data/**/*.jpg
+          commit_user_name: github-actions[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          skip_dirty_check: false
+
+  # Optional: fetch a specific post/reel JSON via shortcode using GraphQL+embed fallback
+  post_json:
+    if: ${{ github.event.inputs.shortcode != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Fetch post JSON
+        run: |
+          SC='${{ github.event.inputs.shortcode }}'
+          OUT="monitoring_data/_posts/${SC}.json"
+          mkdir -p "$(dirname "$OUT")"
+          python monitor.py --shortcode "$SC" --post-out "$OUT"
+
+      - name: Commit post JSON (if any)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: add post JSON for ${{ github.event.inputs.shortcode }}"
+          file_pattern: monitoring_data/_posts/*.json
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
           skip_dirty_check: false
 
   deploy:
-    needs: monitor
+    needs: [monitor]
     if: always()
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
