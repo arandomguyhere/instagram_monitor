@@ -28,7 +28,7 @@
     .input:focus{outline:none; border-color:#1f6feb}
     button{background:#1f6feb; color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer; transition:background 0.2s ease}
     button:hover{background:#0969da}
-    button:disabled{background:#656d76; cursor:not-allowed}
+    button:disabled{background:#656d76; cursor:not-allowed; opacity:0.5}
     .muted{color:#9db2c5; font-size:12px}
     .verified{display:none}
     a{color:#8ab4ff; text-decoration:none}
@@ -53,6 +53,7 @@
     .save-status{padding:8px 12px; border-radius:6px; font-size:12px; margin-left:12px; display:none}
     .save-status.success{background:#0d7037; color:#26d863}
     .save-status.error{background:#7d1a1a; color:#f85149}
+    .disabled-notice{background:#1a2230; border:1px solid #656d76; border-radius:8px; padding:12px; margin-bottom:20px; color:#9db2c5; font-size:13px}
     
     /* Enhanced avatar styling */
     #avatar {
@@ -65,10 +66,6 @@
     
     #avatar.loading {
       opacity: 0.6;
-    }
-    
-    #avatar.error {
-      background: #1a2230 url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIyNCIgcj0iMTIiIGZpbGw9IiM2NTZkNzYiLz4KPHBhdGggZD0iTTEyIDUyQzEyIDQxIDIwIDMyIDMyIDMyUzUyIDQxIDUyIDUyIiBmaWxsPSIjNjU2ZDc2Ii8+Cjwvc3ZnPgo=') center/32px no-repeat;
     }
     
     @media (max-width: 600px) {
@@ -90,8 +87,6 @@
              alt="Profile Picture" 
              width="64" 
              height="64"
-             referrerpolicy="no-referrer"
-             crossorigin="anonymous"
              loading="lazy" />
         <div>
           <h1 id="name" style="margin:0 0 6px 0;">Instagram Monitor</h1>
@@ -103,7 +98,7 @@
       </div>
       <div class="badges">
         <span id="methodBadge" class="badge">unknown</span>
-        <span id="demoBadge" class="badge" style="background:#fd7e14; color:white">Demo Data</span>
+        <span id="statusBadge" class="badge">loading</span>
       </div>
     </header>
 
@@ -157,163 +152,68 @@
     <div class="tab-content" id="config-tab">
       <div class="config-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-          <h2 style="margin:0; color:#cfe2f2">Configuration Settings</h2>
-          <button id="saveConfigBtn">💾 Save Settings</button>
+          <h2 style="margin:0; color:#cfe2f2">Local Settings</h2>
+          <button id="saveConfigBtn">💾 Save Locally</button>
           <div id="saveStatus" class="save-status"></div>
         </div>
 
+        <div class="disabled-notice">
+          ⚠️ These settings are saved locally in your browser. Email notifications and server features require a backend API that's not available on GitHub Pages.
+        </div>
+
         <div class="config-section">
-          <h3>🔔 Notifications</h3>
+          <h3>🔔 Notification Preferences</h3>
           <div class="config-item">
             <div>
               <label>Enable Email Notifications</label>
-              <div class="description">Get notified about important changes via email</div>
+              <div class="description">Requires backend server (not available on GitHub Pages)</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="enableEmailNotifications">
+              <input type="checkbox" id="enableEmailNotifications" disabled>
               <span class="slider"></span>
             </label>
-          </div>
-          <div class="config-item">
-            <label>SMTP Host</label>
-            <input type="text" class="config-input" id="smtpHost" placeholder="smtp.gmail.com">
-          </div>
-          <div class="config-item">
-            <label>SMTP Port</label>
-            <input type="number" class="config-input" id="smtpPort" placeholder="587" value="587">
-          </div>
-          <div class="config-item">
-            <label>Email Username</label>
-            <input type="email" class="config-input" id="smtpUser" placeholder="your@email.com">
-          </div>
-          <div class="config-item">
-            <label>Email Password</label>
-            <input type="password" class="config-input" id="smtpPassword" placeholder="app password">
-          </div>
-          <div class="config-item">
-            <label>Notification Email</label>
-            <input type="email" class="config-input" id="notificationEmail" placeholder="notifications@domain.com">
           </div>
         </div>
 
         <div class="config-section">
-          <h3>📸 Profile Pictures</h3>
+          <h3>📸 Display Options</h3>
           <div class="config-item">
             <div>
-              <label>Detect Profile Picture Changes</label>
-              <div class="description">Save and track when users change their profile pictures</div>
+              <label>Show Profile Pictures</label>
+              <div class="description">Display user avatars when available</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="detectProfilePics" checked>
+              <input type="checkbox" id="showProfilePics" checked>
               <span class="slider"></span>
             </label>
           </div>
           <div class="config-item">
             <div>
               <label>Use HD Quality</label>
-              <div class="description">Download higher quality profile pictures</div>
+              <div class="description">Load higher quality images when available</div>
             </div>
             <label class="toggle">
               <input type="checkbox" id="useHdPics" checked>
               <span class="slider"></span>
             </label>
           </div>
-          <div class="config-item">
-            <label>Keep Picture History</label>
-            <input type="number" class="config-input" id="keepPicHistory" value="10" min="1" max="50">
-          </div>
         </div>
 
         <div class="config-section">
-          <h3>👥 Monitoring Options</h3>
+          <h3>👥 View Options</h3>
           <div class="config-item">
             <div>
-              <label>Track Followers</label>
-              <div class="description">Monitor follower changes (may be slow)</div>
+              <label>Show Milestones</label>
+              <div class="description">Highlight follower milestones (1K, 10K, etc.)</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="trackFollowers">
+              <input type="checkbox" id="showMilestones" checked>
               <span class="slider"></span>
             </label>
           </div>
           <div class="config-item">
-            <div>
-              <label>Notify on Milestones</label>
-              <div class="description">Get alerts for follower milestones (1K, 10K, etc.)</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="notifyMilestones" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="config-item">
-            <label>Check Interval (minutes)</label>
-            <input type="number" class="config-input" id="checkInterval" value="60" min="5" max="1440">
-          </div>
-        </div>
-
-        <div class="config-section">
-          <h3>🔒 Privacy & Security</h3>
-          <div class="config-item">
-            <div>
-              <label>Anonymous Mode</label>
-              <div class="description">Don't use stored Instagram sessions</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="anonymousMode">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="config-item">
-            <div>
-              <label>Rotate User Agents</label>
-              <div class="description">Use different browser signatures to avoid detection</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="rotateUserAgents" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="config-section">
-          <h3>📊 Data & Export</h3>
-          <div class="config-item">
-            <div>
-              <label>Export to CSV</label>
-              <div class="description">Save monitoring data in CSV format</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="exportCsv">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="config-item">
-            <label>Keep History (days)</label>
-            <input type="number" class="config-input" id="keepHistoryDays" value="30" min="1" max="365">
-          </div>
-        <div class="config-section">
-          <h3>🔧 Actions</h3>
-          <div class="config-item">
-            <div>
-              <label>Test Email Configuration</label>
-              <div class="description">Send a test email to verify settings</div>
-            </div>
-            <button id="testEmailBtn" style="background:#fd7e14">📧 Test Email</button>
-          </div>
-          <div class="config-item">
-            <div>
-              <label>Manual Monitor Run</label>
-              <div class="description">Trigger monitoring for the current user</div>
-            </div>
-            <button id="triggerMonitorBtn" style="background:#26d863; color:#000">▶️ Run Now</button>
-          </div>
-          <div class="config-item">
-            <div>
-              <label>Load Config from Server</label>
-              <div class="description">Reload settings from the configuration API</div>
-            </div>
-            <button id="loadConfigBtn" style="background:#8ab4ff; color:#000">🔄 Reload</button>
+            <label>Refresh Interval (seconds)</label>
+            <input type="number" class="config-input" id="refreshInterval" value="60" min="10" max="300">
           </div>
         </div>
       </div>
@@ -341,130 +241,49 @@
             <li>👥 Follower count tracking</li>
             <li>📸 Profile picture change detection</li>
             <li>📝 Bio and profile updates</li>
-            <li>🔔 Email notifications</li>
-            <li>📊 Historical data export</li>
-            <li>🎯 Milestone alerts</li>
+            <li>📊 Historical data tracking</li>
+            <li>🎯 Milestone detection</li>
           </ul>
           <p style="margin-top:20px">
-            <strong>Version:</strong> 2.0 Enhanced<br>
+            <strong>Version:</strong> 2.1 Fixed<br>
             <strong>Source:</strong> <a href="https://github.com/arandomguyhere/instagram_monitor" target="_blank">GitHub Repository</a><br>
             <strong>License:</strong> MIT
           </p>
+          <div style="margin-top:20px; padding:12px; background:#1a2230; border-radius:8px">
+            <strong>Note:</strong> This dashboard runs entirely in your browser. Email notifications and remote monitoring require running the Python script with proper credentials.
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Robust BASE: '' on user site; '/<repo>' on project site
-    const parts = location.pathname.split('/').filter(Boolean);
-    const BASE = parts.length ? `/${parts[0]}` : '';
+    // Detect GitHub Pages deployment
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    const BASE = isGitHubPages ? '/instagram_monitor' : '';
 
     const $  = (q) => document.querySelector(q);
     const txt = (q, v) => { const el=$(q); if (el) el.textContent = v; };
     const show = (q, on=true) => { const el=$(q); if (el) el.style.display = on?'':'none'; };
     const fmt = (n) => (Number(n)||0).toLocaleString();
 
-    // Configuration Management with API Integration
-    const API_BASE = 'http://localhost:8080/api';
     let currentUser = 'therock';
+    let refreshTimer = null;
 
-    async function loadConfigFromAPI() {
-      try {
-        const response = await fetch(`${API_BASE}/config`);
-        if (response.ok) {
-          const data = await response.json();
-          return data.success ? data.config : null;
-        }
-      } catch (e) {
-        console.log('API not available, using localStorage');
-      }
-      return null;
-    }
-
-    async function saveConfigToAPI(config) {
-      try {
-        const response = await fetch(`${API_BASE}/config`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(config)
-        });
-        if (response.ok) {
-          const data = await response.json();
-          return data.success;
-        }
-      } catch (e) {
-        console.log('API not available, using localStorage');
-      }
-      return false;
-    }
-
-    async function testEmailConfig() {
-      try {
-        const response = await fetch(`${API_BASE}/test-email`);
-        const data = await response.json();
-        return data;
-      } catch (e) {
-        return { success: false, error: 'API not available' };
-      }
-    }
-
-    async function triggerMonitoring(username) {
-      try {
-        const response = await fetch(`${API_BASE}/trigger-monitoring`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username })
-        });
-        const data = await response.json();
-        return data;
-      } catch (e) {
-        return { success: false, error: 'API not available' };
-      }
-    }
-
+    // Local configuration (no API needed)
     const defaultConfig = {
-      enableEmailNotifications: false,
-      smtpHost: '',
-      smtpPort: 587,
-      smtpUser: '',
-      smtpPassword: '',
-      notificationEmail: '',
-      detectProfilePics: true,
+      showProfilePics: true,
       useHdPics: true,
-      keepPicHistory: 10,
-      trackFollowers: false,
-      notifyMilestones: true,
-      checkInterval: 60,
-      anonymousMode: false,
-      rotateUserAgents: true,
-      exportCsv: false,
-      keepHistoryDays: 30
+      showMilestones: true,
+      refreshInterval: 60
     };
 
-    async function loadConfig() {
-      // Try to load from API first, then localStorage
-      const apiConfig = await loadConfigFromAPI();
-      if (apiConfig) {
-        // Save to localStorage as backup
-        localStorage.setItem('igMonitorConfig', JSON.stringify(apiConfig));
-        return apiConfig;
-      }
-      
+    function loadConfig() {
       const saved = localStorage.getItem('igMonitorConfig');
       return saved ? {...defaultConfig, ...JSON.parse(saved)} : defaultConfig;
     }
 
-    async function saveConfig(config) {
-      // Try to save to API first
-      const apiSuccess = await saveConfigToAPI(config);
-      if (apiSuccess) {
-        // Also save to localStorage as backup
-        localStorage.setItem('igMonitorConfig', JSON.stringify(config));
-        return true;
-      }
-      
-      // Fallback to localStorage only
+    function saveConfig(config) {
       localStorage.setItem('igMonitorConfig', JSON.stringify(config));
       return true;
     }
@@ -472,7 +291,7 @@
     function applyConfigToUI(config) {
       Object.keys(config).forEach(key => {
         const element = $(`#${key}`);
-        if (element) {
+        if (element && !element.disabled) {
           if (element.type === 'checkbox') {
             element.checked = config[key];
           } else {
@@ -486,7 +305,7 @@
       const config = {};
       Object.keys(defaultConfig).forEach(key => {
         const element = $(`#${key}`);
-        if (element) {
+        if (element && !element.disabled) {
           if (element.type === 'checkbox') {
             config[key] = element.checked;
           } else if (element.type === 'number') {
@@ -518,68 +337,21 @@
       });
     }
 
-    // Save Configuration
-    async function initializeConfig() {
-      const config = await loadConfig();
+    // Configuration
+    function initializeConfig() {
+      const config = loadConfig();
       applyConfigToUI(config);
 
-      $('#saveConfigBtn')?.addEventListener('click', async () => {
+      $('#saveConfigBtn')?.addEventListener('click', () => {
         const newConfig = collectConfigFromUI();
-        const success = await saveConfig(newConfig);
+        const success = saveConfig(newConfig);
         
-        showSaveStatus(success, success ? 'Settings saved successfully!' : 'Failed to save settings');
-      });
-
-      // Test Email Button
-      $('#testEmailBtn')?.addEventListener('click', async () => {
-        const btn = $('#testEmailBtn');
-        const originalText = btn.textContent;
-        btn.textContent = '📧 Sending...';
-        btn.disabled = true;
-
-        const result = await testEmailConfig();
-        showSaveStatus(result.success, result.success ? result.message : result.error);
-
-        btn.textContent = originalText;
-        btn.disabled = false;
-      });
-
-      // Trigger Monitor Button
-      $('#triggerMonitorBtn')?.addEventListener('click', async () => {
-        const btn = $('#triggerMonitorBtn');
-        const originalText = btn.textContent;
-        btn.textContent = '▶️ Running...';
-        btn.disabled = true;
-
-        const result = await triggerMonitoring(currentUser);
-        showSaveStatus(result.success, result.success ? result.message : result.error);
-
-        if (result.success) {
-          // Refresh the current user data
-          setTimeout(() => showUser(currentUser), 2000);
+        showSaveStatus(success, 'Settings saved to browser');
+        
+        // Apply refresh interval
+        if (newConfig.refreshInterval !== config.refreshInterval) {
+          setupAutoRefresh(newConfig.refreshInterval);
         }
-
-        btn.textContent = originalText;
-        btn.disabled = false;
-      });
-
-      // Load Config Button
-      $('#loadConfigBtn')?.addEventListener('click', async () => {
-        const btn = $('#loadConfigBtn');
-        const originalText = btn.textContent;
-        btn.textContent = '🔄 Loading...';
-        btn.disabled = true;
-
-        const config = await loadConfigFromAPI();
-        if (config) {
-          applyConfigToUI(config);
-          showSaveStatus(true, 'Configuration reloaded from server');
-        } else {
-          showSaveStatus(false, 'Failed to load configuration from server');
-        }
-
-        btn.textContent = originalText;
-        btn.disabled = false;
       });
     }
 
@@ -592,11 +364,11 @@
         
         setTimeout(() => {
           statusEl.style.display = 'none';
-        }, 5000);
+        }, 3000);
       }
     }
 
-    // Generate unique avatar placeholders
+    // Avatar generation
     function generateAvatarPlaceholder(username) {
       let hash = 0;
       for (let i = 0; i < username.length; i++) {
@@ -630,89 +402,82 @@
       return `data:image/svg+xml;base64,${btoa(svg)}`;
     }
 
-    // Enhanced avatar loading with better fallbacks
+    // Avatar loading
     function loadAvatar(data) {
       const img = $('#avatar');
       if (!img) return;
       
-      img.className = 'loading';
-      img.onerror = null;
-      img.onload = null;
-      
-      const username = data.username || 'user';
-      const avatarUrls = [
-        data.profile_pic_url_hd,
-        data.profile_pic_url,
-        data.profile_pic_url_hd ? `https://images.weserv.nl/?url=${encodeURIComponent(data.profile_pic_url_hd)}&w=150&h=150&output=webp` : null,
-        data.profile_pic_url ? `https://images.weserv.nl/?url=${encodeURIComponent(data.profile_pic_url)}&w=150&h=150&output=webp` : null,
-        'assets/instagram_profile_pic_empty.jpeg',
-        generateAvatarPlaceholder(username)
-      ].filter(Boolean);
-      
-      let currentIndex = 0;
-      
-      function tryNextUrl() {
-        if (currentIndex >= avatarUrls.length) {
-          console.error('All avatar URLs failed, using generated placeholder');
-          img.className = '';
-          img.src = generateAvatarPlaceholder(username);
-          return;
-        }
-        
-        const url = avatarUrls[currentIndex];
-        console.log(`Trying avatar URL ${currentIndex + 1}/${avatarUrls.length}:`, url.substring(0, 100));
-        
-        img.onerror = () => {
-          console.warn(`Avatar URL ${currentIndex + 1} failed`);
-          currentIndex++;
-          setTimeout(tryNextUrl, 100);
-        };
-        
-        img.onload = () => {
-          console.log(`✅ Avatar loaded successfully from URL ${currentIndex + 1}`);
-          img.className = '';
-        };
-        
-        img.src = url;
+      const config = loadConfig();
+      if (!config.showProfilePics) {
+        img.src = generateAvatarPlaceholder(data.username || 'user');
+        return;
       }
       
-      tryNextUrl();
+      img.className = 'loading';
+      const username = data.username || 'user';
+      
+      // Try profile pic URL if available
+      if (data.profile_pic_url) {
+        img.onerror = () => {
+          img.src = generateAvatarPlaceholder(username);
+          img.className = '';
+        };
+        img.onload = () => {
+          img.className = '';
+        };
+        img.src = config.useHdPics && data.profile_pic_url_hd ? 
+          data.profile_pic_url_hd : data.profile_pic_url;
+      } else {
+        img.src = generateAvatarPlaceholder(username);
+        img.className = '';
+      }
     }
 
-    async function fetchJson(url){
+    async function fetchJson(url) {
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`${url} -> ${res.status}`);
       return res.json();
     }
 
-    async function loadProfile(user){
-      const base = `${BASE}/data/${encodeURIComponent(user)}`;
+    async function loadProfile(user) {
+      // Fixed paths to match what monitor.py actually creates
+      const base = `${BASE}/monitoring_data/${encodeURIComponent(user)}`;
       const ts = `?ts=${Date.now()}`;
 
       try {
-        const d = await fetchJson(`${base}/monitoring_summary.json${ts}`);
-        d.__source = 'summary';
-        return d;
-      } catch {}
+        // Try latest.json (what monitor.py creates)
+        const latest = await fetchJson(`${base}/latest.json${ts}`);
+        latest.__source = 'latest';
+        latest.timestamp = latest.last_updated || new Date().toISOString();
+        latest.profile_url = `https://instagram.com/${latest.username}`;
+        return latest;
+      } catch (e) {
+        console.log('latest.json not found, trying history.json');
+      }
       
       try {
-        const q = await fetchJson(`${base}/quick_stats.json${ts}`);
-        q.__source = 'quick';
-        q.timestamp = q.last_updated || null;
-        q.profile_url = q.profile_url || `https://instagram.com/${q.username}`;
-        q.data_collection_method = q.method || 'unknown';
-        return q;
-      } catch {}
+        // Try history.json as fallback
+        const history = await fetchJson(`${base}/history.json${ts}`);
+        if (history && history.length > 0) {
+          const latest = history[history.length - 1].snapshot;
+          latest.__source = 'history';
+          latest.timestamp = latest.last_updated || history[history.length - 1].timestamp;
+          latest.profile_url = `https://instagram.com/${latest.username}`;
+          return latest;
+        }
+      } catch (e) {
+        console.log('history.json not found');
+      }
       
       throw new Error('No data found');
     }
 
-    function render(d){
+    function render(d) {
       txt('#name', d.full_name || d.username);
       txt('#username', '@' + d.username);
       txt('#followers', fmt(d.followers));
-      txt('#following', fmt(d.following));
-      txt('#posts', fmt(d.posts));
+      txt('#following', fmt(d.following || d.followees));
+      txt('#posts', fmt(d.posts || d.mediacount));
       txt('#lastUpdated', d.timestamp ? new Date(d.timestamp).toLocaleString() : '—');
 
       const link = $('#profileLink');
@@ -720,29 +485,26 @@
 
       loadAvatar(d);
 
-      const method = d.data_collection_method || d.method || 'unknown';
-      txt('#methodBadge', method.replace(/_/g,' '));
+      txt('#methodBadge', d.schema === 'v1' ? 'monitored' : 'unknown');
+      txt('#statusBadge', 'live data');
       show('#verifiedBadge', !!d.is_verified);
-      show('#demoBadge', false);
 
       const raw = $('#rawDataLink');
       if (raw) {
-        const filename = d.__source === 'summary' ? 'monitoring_summary.json' : 'quick_stats.json';
-        raw.href = `${BASE}/data/${encodeURIComponent(d.username)}/${filename}`;
+        raw.href = `${BASE}/monitoring_data/${encodeURIComponent(d.username)}/latest.json`;
       }
 
       // Load changes if available
-      loadChangesLog(d.username);
+      loadChangesFromHistory(d.username);
     }
 
     function renderFallback(user) {
-      show('#demoBadge', true);
-      txt('#name', 'No Data Available');
+      txt('#name', 'No Data Yet');
       txt('#username', '@' + user);
       txt('#followers','—'); 
       txt('#following','—'); 
       txt('#posts','—');
-      txt('#lastUpdated','—');
+      txt('#lastUpdated','Never');
       
       const link = $('#profileLink'); 
       if (link) link.href = `https://instagram.com/${user}`;
@@ -750,44 +512,70 @@
       const img = $('#avatar'); 
       if (img) {
         img.className = '';
-        img.onerror = null;
-        img.onload = null;
         img.src = generateAvatarPlaceholder(user);
       }
       
       txt('#methodBadge','no data');
+      txt('#statusBadge', 'pending');
       show('#verifiedBadge', false);
       
       const raw = $('#rawDataLink'); 
-      if (raw) raw.href = `${BASE}/data/${encodeURIComponent(user)}/quick_stats.json`;
+      if (raw) raw.href = `${BASE}/monitoring_data/${encodeURIComponent(user)}/latest.json`;
     }
 
-    async function loadChangesLog(username) {
+    async function loadChangesFromHistory(username) {
       try {
-        const changes = await fetchJson(`${BASE}/data/${encodeURIComponent(username)}/changes_log.json?ts=${Date.now()}`);
+        const history = await fetchJson(`${BASE}/monitoring_data/${encodeURIComponent(username)}/history.json?ts=${Date.now()}`);
         const changesEl = $('#changesLog');
-        if (changesEl && changes.entries) {
-          changesEl.innerHTML = changes.entries
-            .slice(-10) // Last 10 changes
-            .reverse()
-            .map(change => `
-              <div style="border:1px solid #1c2a3b; border-radius:8px; padding:12px; margin-bottom:12px">
-                <div style="color:#8ab4ff; font-size:12px; margin-bottom:8px">
-                  ${new Date(change.timestamp).toLocaleString()}
+        
+        if (changesEl && history && history.length > 0) {
+          // Extract changes from history
+          const changes = [];
+          for (let i = 1; i < history.length && changes.length < 10; i++) {
+            const entry = history[history.length - i];
+            if (entry.changes && Object.keys(entry.changes).length > 0) {
+              changes.push({
+                timestamp: entry.timestamp,
+                changes: entry.changes
+              });
+            }
+          }
+          
+          if (changes.length > 0) {
+            changesEl.innerHTML = changes.map(change => {
+              const changeDescriptions = Object.entries(change.changes).map(([key, val]) => {
+                if (key === 'followers') return `Followers: ${fmt(val.old)} → ${fmt(val.new)}`;
+                if (key === 'following') return `Following: ${fmt(val.old)} → ${fmt(val.new)}`;
+                if (key === 'posts') return `Posts: ${fmt(val.old)} → ${fmt(val.new)}`;
+                if (key === 'biography') return `Bio updated`;
+                if (key === 'full_name') return `Name changed`;
+                if (key === 'is_private') return val.new ? `Account made private` : `Account made public`;
+                if (key === 'is_verified') return val.new ? `✓ Verified` : `Verification removed`;
+                return `${key} changed`;
+              });
+              
+              return `
+                <div style="border:1px solid #1c2a3b; border-radius:8px; padding:12px; margin-bottom:12px">
+                  <div style="color:#8ab4ff; font-size:12px; margin-bottom:8px">
+                    ${new Date(change.timestamp).toLocaleString()}
+                  </div>
+                  ${changeDescriptions.map(c => `<div style="margin-bottom:4px">• ${c}</div>`).join('')}
                 </div>
-                ${change.changes_detected.map(c => `<div style="margin-bottom:4px">• ${c}</div>`).join('')}
-              </div>
-            `).join('');
+              `;
+            }).join('');
+          } else {
+            changesEl.innerHTML = '<div class="muted" style="text-align:center; padding:40px">No changes detected yet</div>';
+          }
         }
       } catch (e) {
-        console.log('No changes log found');
+        console.log('Could not load changes:', e);
       }
     }
 
-    async function showUser(user){
+    async function showUser(user) {
       if (!user) return;
       
-      currentUser = user; // Store current user for API calls
+      currentUser = user;
       
       const searchInput = $('#searchInput');
       const searchBtn = $('#searchBtn');
@@ -800,13 +588,22 @@
       try {
         const data = await loadProfile(user);
         render(data);
-        console.log(`✅ Loaded data for @${user} from ${data.__source}`);
+        console.log(`✅ Loaded data for @${user}`);
       } catch (e) {
         console.warn(`⚠️ No data found for @${user}:`, e.message);
         renderFallback(user);
       } finally {
         if (searchBtn) searchBtn.disabled = false;
         if (wrap) wrap.classList.remove('loading');
+      }
+    }
+
+    function setupAutoRefresh(seconds) {
+      if (refreshTimer) clearInterval(refreshTimer);
+      if (seconds && seconds > 0) {
+        refreshTimer = setInterval(() => {
+          if (currentUser) showUser(currentUser);
+        }, seconds * 1000);
       }
     }
 
@@ -817,14 +614,13 @@
       // Initialize configuration
       initializeConfig();
       
-      // Search button click
+      // Search functionality
       $('#searchBtn')?.addEventListener('click', () => {
         const input = $('#searchInput');
         const user = (input?.value || '').trim().replace('@', '');
         if (user) showUser(user);
       });
       
-      // Enter key in search input
       $('#searchInput')?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -840,13 +636,17 @@
         });
       });
       
-      // Load initial user from URL or default
+      // Load initial user
       const urlParams = new URLSearchParams(location.search);
       const initial = urlParams.get('u') || urlParams.get('user') || 'therock';
       showUser(initial);
+      
+      // Setup auto-refresh
+      const config = loadConfig();
+      setupAutoRefresh(config.refreshInterval);
     }
 
-    // Initialize when DOM is ready
+    // Start app
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeApp);
     } else {
