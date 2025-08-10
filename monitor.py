@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Enhanced Instagram Monitor - Now with Friends List functionality
+Enhanced Instagram Monitor - Complete with Friends List and Workflow Integration
+Save this as: monitor.py
 """
 
 import argparse
@@ -29,7 +30,7 @@ except ImportError:
     print("Error: instaloader not found. Install with: pip install instaloader")
     sys.exit(1)
 
-# ---------- Enhanced Configuration ----------
+# ---------- Configuration ----------
 ENABLE_EMAIL_NOTIFICATIONS = False
 SMTP_HOST = ""
 SMTP_PORT = 587
@@ -41,16 +42,16 @@ RECEIVER_EMAIL = ""
 
 DETECT_PROFILE_CHANGES = True
 SAVE_PROFILE_PICTURES = True
-TRACK_FOLLOWERS = True  # Now enabled by default for friends list
-TRACK_FOLLOWINGS = True  # Now enabled by default for friends list
+TRACK_FOLLOWERS = True
+TRACK_FOLLOWINGS = True
 TRACK_POSTS = True
-SHOW_FRIENDS_LIST = True  # New option for friends list
+SHOW_FRIENDS_LIST = True
 
 # Enhanced logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# ---------- Enhanced Helper Functions ----------
+# ---------- Helper Functions ----------
 
 def get_random_user_agent() -> str:
     """Generate random user agent to avoid detection"""
@@ -89,11 +90,9 @@ def send_email_notification(subject: str, body: str, html_body: str = "") -> boo
         msg["To"] = RECEIVER_EMAIL
         msg["Subject"] = str(Header(subject, 'utf-8'))
         
-        # Add text version
         text_part = MIMEText(body.encode('utf-8'), 'plain', _charset='utf-8')
         msg.attach(text_part)
         
-        # Add HTML version if provided
         if html_body:
             html_part = MIMEText(html_body.encode('utf-8'), 'html', _charset='utf-8')
             msg.attach(html_part)
@@ -119,17 +118,6 @@ def save_profile_picture(url: str, filepath: str) -> bool:
         return True
     except Exception as e:
         logger.warning(f"Failed to save profile picture: {e}")
-        return False
-
-def compare_profile_pictures(file1: str, file2: str) -> bool:
-    """Compare two profile pictures to detect changes"""
-    if not (os.path.isfile(file1) and os.path.isfile(file2)):
-        return False
-    
-    try:
-        with open(file1, 'rb') as f1, open(file2, 'rb') as f2:
-            return f1.read() == f2.read()
-    except Exception:
         return False
 
 def detect_changes(current_data: dict, historical_data: dict) -> dict:
@@ -161,14 +149,6 @@ def detect_changes(current_data: dict, historical_data: dict) -> dict:
         if new_val != old_val:
             changes["changes_detected"].append(f"{label} changed")
             changes["has_changes"] = True
-    
-    # Check privacy status
-    old_private = bool(historical_data.get("is_private", False))
-    new_private = bool(current_data.get("is_private", False))
-    if old_private != new_private:
-        status = "private" if new_private else "public"
-        changes["changes_detected"].append(f"Account is now {status}")
-        changes["has_changes"] = True
     
     return changes
 
@@ -321,82 +301,25 @@ def display_friends_analysis(username: str, output_dir: Path) -> None:
     except Exception as e:
         logger.error(f"Failed to display friends analysis: {e}")
 
-# ---------- Enhanced Profile Picture Detection ----------
-
-def detect_profile_picture_changes(username: str, current_pic_url: str, output_dir: Path) -> dict:
-    """Detect and handle profile picture changes"""
-    if not SAVE_PROFILE_PICTURES or not current_pic_url:
-        return {"changed": False}
-    
-    pic_dir = output_dir / "profile_pics"
-    pic_dir.mkdir(exist_ok=True)
-    
-    current_pic_file = pic_dir / f"{username}_current.jpg"
-    new_pic_file = pic_dir / f"{username}_new.jpg"
-    
-    # Download new picture
-    if not save_profile_picture(current_pic_url, str(new_pic_file)):
-        return {"changed": False, "error": "Failed to download"}
-    
-    # If no existing picture, this is the first time
-    if not current_pic_file.exists():
-        new_pic_file.rename(current_pic_file)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        archive_file = pic_dir / f"{username}_{timestamp}.jpg"
-        save_profile_picture(current_pic_url, str(archive_file))
-        
-        return {
-            "changed": True,
-            "type": "initial",
-            "message": f"Initial profile picture saved for {username}"
-        }
-    
-    # Compare with existing picture
-    if compare_profile_pictures(str(current_pic_file), str(new_pic_file)):
-        # No change
-        new_pic_file.unlink()
-        return {"changed": False}
-    else:
-        # Picture changed
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        old_archive = pic_dir / f"{username}_old_{timestamp}.jpg"
-        current_pic_file.rename(old_archive)
-        new_pic_file.rename(current_pic_file)
-        
-        # Save new version with timestamp
-        new_archive = pic_dir / f"{username}_{timestamp}.jpg"
-        save_profile_picture(current_pic_url, str(new_archive))
-        
-        return {
-            "changed": True,
-            "type": "update",
-            "message": f"Profile picture changed for {username}",
-            "old_file": str(old_archive),
-            "new_file": str(new_archive)
-        }
-
-# ---------- Enhanced Data Collection ----------
+# ---------- Data Collection ----------
 
 def get_enhanced_profile_pic_urls(profile):
     """Extract multiple profile picture URL options with better error handling"""
     urls = {}
     
     try:
-        # Standard profile pic URL
         if hasattr(profile, 'profile_pic_url') and profile.profile_pic_url:
             url = str(profile.profile_pic_url)
             if url and not url.startswith('http'):
                 url = 'https:' + url if url.startswith('//') else 'https://' + url
             urls['profile_pic_url'] = url
             
-        # HD version
         if hasattr(profile, 'profile_pic_url_hd') and profile.profile_pic_url_hd:
             url_hd = str(profile.profile_pic_url_hd)
             if url_hd and not url_hd.startswith('http'):
                 url_hd = 'https:' + url_hd if url_hd.startswith('//') else 'https://' + url_hd
             urls['profile_pic_url_hd'] = url_hd
         
-        # Try node data
         if hasattr(profile, '_node') and profile._node:
             node = profile._node
             for key in ['profile_pic_url', 'profile_pic_url_hd']:
@@ -406,12 +329,9 @@ def get_enhanced_profile_pic_urls(profile):
                         url = 'https:' + url if url.startswith('//') else 'https://' + url
                     urls[key] = url
                     
-        logger.debug(f"Extracted profile pic URLs: {urls}")
-                
     except Exception as e:
         logger.debug(f"Error extracting profile pic URLs: {e}")
     
-    # Ensure fallback values
     if not urls.get('profile_pic_url'):
         urls['profile_pic_url'] = ''
     if not urls.get('profile_pic_url_hd'):
@@ -457,10 +377,9 @@ def try_authenticated_method(username: str) -> dict | None:
             "profile_pic_url": pic_urls.get('profile_pic_url', ''),
             "profile_pic_url_hd": pic_urls.get('profile_pic_url_hd', ''),
             "method": "authenticated_api",
-            "profile_object": profile  # Pass the profile object for friends list access
+            "profile_object": profile
         }
 
-        # Optional enrichment
         try:
             data["external_url"] = getattr(profile, "external_url", None)
         except Exception:
@@ -493,7 +412,7 @@ def try_anonymous_method(username: str) -> dict | None:
             "profile_pic_url": pic_urls.get('profile_pic_url', ''),
             "profile_pic_url_hd": pic_urls.get('profile_pic_url_hd', ''),
             "method": "anonymous_api",
-            "profile_object": profile  # Pass the profile object
+            "profile_object": profile
         }
         
         return data
@@ -507,88 +426,117 @@ def try_anonymous_method(username: str) -> dict | None:
         logger.warning(f"Anonymous method failed: {e}")
         return None
 
-def try_web_scraping_method(username: str) -> dict | None:
-    """Enhanced web scraping method with better error handling"""
+# ---------- Workflow Integration ----------
+
+def update_queue_status(username: str, status: str, output_dir: str = "./") -> bool:
+    """Update user status in monitoring queue"""
+    queue_file = Path(output_dir) / "monitoring_queue.json"
+    
+    if not queue_file.exists():
+        return False
+    
     try:
-        logger.info("Trying enhanced web scraping method...")
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": get_random_user_agent(),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "DNT": "1",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-        })
+        with open(queue_file, 'r', encoding="utf-8") as f:
+            queue_data = json.load(f)
         
-        retries = Retry(total=5, backoff_factor=2.0, status_forcelist=(429, 500, 502, 503, 504))
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-
-        time.sleep(random.uniform(3, 8))
-        url = f"https://www.instagram.com/{username}/"
-        resp = session.get(url, timeout=20)
-
-        if resp.status_code == 404:
-            raise ProfileNotExistsException(f"Profile {username} does not exist")
-        resp.raise_for_status()
-        html = resp.text
-
-        # Extract data using regex patterns
-        patterns = {
-            "followers": r'"edge_followed_by":{"count":(\d+)}',
-            "following": r'"edge_follow":{"count":(\d+)}',
-            "posts": r'"edge_owner_to_timeline_media":{"count":(\d+)}',
-            "full_name": r'"full_name":"([^"]*)"',
-            "bio": r'"biography":"([^"]*)"',
-            "is_private": r'"is_private":(true|false)',
-            "is_verified": r'"is_verified":(true|false)',
-            "profile_pic_url": r'"profile_pic_url":"([^"]*)"',
-            "profile_pic_url_hd": r'"profile_pic_url_hd":"([^"]*)"'
-        }
+        for user_data in queue_data.get("queue", []):
+            if user_data["username"] == username:
+                user_data["status"] = status
+                user_data["last_check"] = datetime.now(timezone.utc).isoformat()
+                if status == "monitoring":
+                    user_data["monitoring_started"] = datetime.now(timezone.utc).isoformat()
+                break
         
-        data = {
-            "username": username,
-            "full_name": username,
-            "followers": 0,
-            "following": 0,
-            "posts": 0,
-            "bio": "",
-            "is_private": False,
-            "is_verified": False,
-            "profile_pic_url": "",
-            "profile_pic_url_hd": "",
-            "method": "web_scraping",
-            "profile_object": None  # No profile object available for web scraping
-        }
+        with open(queue_file, 'w', encoding="utf-8") as f:
+            json.dump(queue_data, f, indent=2, ensure_ascii=False)
         
-        # Extract using patterns
-        for field, pattern in patterns.items():
-            match = re.search(pattern, html)
-            if match:
-                value = match.group(1)
-                if field in ["followers", "following", "posts"]:
-                    data[field] = int(value)
-                elif field in ["is_private", "is_verified"]:
-                    data[field] = value == "true"
-                elif field in ["profile_pic_url", "profile_pic_url_hd"]:
-                    value = value.replace('\\/', '/').replace('\\u0026', '&')
-                    if value and not value.startswith('http'):
-                        value = 'https:' + value if value.startswith('//') else 'https://' + value
-                    data[field] = value
-                else:
-                    data[field] = value.replace('\\n', '\n').replace('\\"', '"')
-
-        return data
+        return True
         
     except Exception as e:
-        logger.warning(f"Enhanced web scraping method failed: {e}")
-        return None
+        logger.error(f"Failed to update queue status: {e}")
+        return False
 
-# ---------- Main Enhanced Function ----------
+def get_next_queued_users(count: int = 5, output_dir: str = "./") -> list:
+    """Get next users from monitoring queue"""
+    queue_file = Path(output_dir) / "monitoring_queue.json"
+    
+    if not queue_file.exists():
+        return []
+    
+    try:
+        with open(queue_file, 'r', encoding="utf-8") as f:
+            queue_data = json.load(f)
+        
+        queued_users = [
+            u for u in queue_data.get("queue", []) 
+            if u.get("status") == "queued"
+        ]
+        
+        queued_users.sort(key=lambda x: (x.get("priority", 999), x.get("queue_position", 999)))
+        
+        return [u["username"] for u in queued_users[:count]]
+        
+    except Exception as e:
+        logger.error(f"Failed to get queued users: {e}")
+        return []
+
+def setup_batch_monitoring(usernames: list, output_base_dir: str = "./") -> bool:
+    """Setup batch monitoring for multiple users"""
+    base_path = Path(output_base_dir)
+    batch_summary = {
+        "batch_id": datetime.now().strftime("%Y%m%d_%H%M%S"),
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "users": usernames,
+        "total_users": len(usernames),
+        "completed": 0,
+        "failed": 0,
+        "results": {}
+    }
+    
+    batch_file = base_path / "batch_summary.json"
+    
+    try:
+        with open(batch_file, 'w', encoding="utf-8") as f:
+            json.dump(batch_summary, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Batch monitoring setup for {len(usernames)} users")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to setup batch monitoring: {e}")
+        return False
+
+def update_batch_progress(username: str, success: bool, output_base_dir: str = "./") -> None:
+    """Update batch monitoring progress"""
+    batch_file = Path(output_base_dir) / "batch_summary.json"
+    
+    if not batch_file.exists():
+        return
+    
+    try:
+        with open(batch_file, 'r', encoding="utf-8") as f:
+            batch_data = json.load(f)
+        
+        if success:
+            batch_data["completed"] += 1
+        else:
+            batch_data["failed"] += 1
+        
+        batch_data["results"][username] = {
+            "success": success,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        if batch_data["completed"] + batch_data["failed"] >= batch_data["total_users"]:
+            batch_data["finished_at"] = datetime.now(timezone.utc).isoformat()
+        
+        with open(batch_file, 'w', encoding="utf-8") as f:
+            json.dump(batch_data, f, indent=2, ensure_ascii=False)
+            
+    except Exception as e:
+        logger.error(f"Failed to update batch progress: {e}")
+
+# ---------- Main Function ----------
 
 def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", history_keep: int = 100, show_friends: bool = False) -> bool:
     """Enhanced profile data fetching with change detection, notifications and friends list"""
@@ -623,7 +571,6 @@ def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", histor
     profile_data = (
         try_authenticated_method(target_user)
         or try_anonymous_method(target_user)
-        or try_web_scraping_method(target_user)
         or {
             "username": target_user,
             "full_name": target_user,
@@ -655,15 +602,6 @@ def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", histor
     # Detect changes
     changes = detect_changes(current_data, historical_summary)
     current_data["changes"] = changes
-
-    # Handle profile picture changes
-    if DETECT_PROFILE_CHANGES:
-        pic_url = current_data.get("profile_pic_url_hd") or current_data.get("profile_pic_url")
-        pic_result = detect_profile_picture_changes(target_user, pic_url, output_path)
-        if pic_result.get("changed"):
-            changes["changes_detected"].append(pic_result["message"])
-            changes["has_changes"] = True
-            logger.info(pic_result["message"])
 
     # Handle friends list functionality
     if SHOW_FRIENDS_LIST and profile_object and not current_data.get("is_private", False):
@@ -717,7 +655,7 @@ def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", histor
                             pass
                     
                     friend_changes_data["entries"].append(friend_changes)
-                    friend_changes_data["entries"] = friend_changes_data["entries"][-50:]  # Keep last 50
+                    friend_changes_data["entries"] = friend_changes_data["entries"][-50:]
                     write_json_atomic(friend_changes_file, friend_changes_data)
             
             # Display friends analysis if requested
@@ -769,7 +707,7 @@ def fetch_enhanced_profile_data(target_user: str, output_dir: str = "./", histor
                 pass
         
         changes_data["entries"].append(changes)
-        changes_data["entries"] = changes_data["entries"][-50:]  # Keep last 50 changes
+        changes_data["entries"] = changes_data["entries"][-50:]
         write_json_atomic(changes_file, changes_data)
 
     # Send notifications if configured
@@ -814,7 +752,6 @@ def show_friends_list_command(target_user: str, output_dir: str = "./") -> bool:
     """Command to show friends list analysis"""
     output_path = Path(output_dir)
     
-    # Check if friends data exists
     friends_file = output_path / f"{target_user}_friends_analysis.json"
     if not friends_file.exists():
         logger.error(f"No friends data found for {target_user}. Run monitor first with --friends option.")
@@ -844,15 +781,12 @@ def export_friends_list(target_user: str, output_dir: str = "./", format_type: s
                 writer = csv.writer(csvfile)
                 writer.writerow(['Username', 'Category', 'Profile_URL'])
                 
-                # Write mutual friends
                 for friend in data.get("mutual_friends", []):
                     writer.writerow([friend, 'Mutual Friend', f'https://instagram.com/{friend}'])
                 
-                # Write followers only
                 for follower in data.get("followers_only", []):
                     writer.writerow([follower, 'Follower Only', f'https://instagram.com/{follower}'])
                 
-                # Write followings only
                 for following in data.get("followings_only", []):
                     writer.writerow([following, 'Following Only', f'https://instagram.com/{following}'])
             
@@ -918,7 +852,7 @@ def compare_friends_over_time(target_user: str, output_dir: str = "./") -> bool:
         print(f"FRIENDS CHANGES TIMELINE FOR @{target_user}")
         print("="*60)
         
-        for i, entry in enumerate(reversed(entries[-10:]), 1):  # Show last 10 changes
+        for i, entry in enumerate(reversed(entries[-10:]), 1):
             timestamp = entry.get("timestamp", "Unknown")
             date_str = timestamp.split("T")[0] if "T" in timestamp else timestamp
             
@@ -956,7 +890,7 @@ def compare_friends_over_time(target_user: str, output_dir: str = "./") -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Enhanced Instagram Monitor with Friends List functionality",
+        description="Enhanced Instagram Monitor with Friends List functionality and Workflow Integration",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -972,12 +906,18 @@ Examples:
   # Export friends list
   python monitor.py --target-user username --export-friends csv
   
-  # Compare friends changes over time
-  python monitor.py --target-user username --friends-timeline
+  # Workflow integration
+  python monitor.py --batch-users user1 user2 user3
+  python monitor.py --queue-batch 5
         """
     )
     
-    parser.add_argument("--target-user", required=True, help="Instagram username to monitor")
+    # Target specification
+    group_target = parser.add_mutually_exclusive_group(required=True)
+    group_target.add_argument("--target-user", help="Instagram username to monitor")
+    group_target.add_argument("--batch-users", nargs="+", help="Multiple users to monitor in batch")
+    group_target.add_argument("--queue-batch", type=int, help="Process N users from monitoring queue")
+    
     parser.add_argument("--output-dir", default="./", help="Output directory for data files")
     parser.add_argument("--history-keep", type=int, default=100, help="Number of history entries to retain")
     
@@ -990,8 +930,12 @@ Examples:
     parser.add_argument("--show-friends", action="store_true", help="Show friends list analysis (no monitoring)")
     parser.add_argument("--export-friends", choices=["json", "csv", "txt"], help="Export friends list in specified format")
     parser.add_argument("--friends-timeline", action="store_true", help="Show friends changes over time")
-    parser.add_argument("--disable-followers", action="store_true", help="Disable follower tracking (for friends list)")
-    parser.add_argument("--disable-followings", action="store_true", help="Disable following tracking (for friends list)")
+    parser.add_argument("--disable-followers", action="store_true", help="Disable follower tracking")
+    parser.add_argument("--disable-followings", action="store_true", help="Disable following tracking")
+    
+    # Workflow integration
+    parser.add_argument("--workflow-mode", action="store_true", help="Enable workflow integration features")
+    parser.add_argument("--update-queue", action="store_true", help="Update monitoring queue status")
     
     args = parser.parse_args()
 
@@ -1012,12 +956,113 @@ Examples:
     if args.friends:
         SHOW_FRIENDS_LIST = True
 
+    # Handle queue batch processing
+    if args.queue_batch:
+        logger.info(f"Processing {args.queue_batch} users from monitoring queue")
+        users_to_process = get_next_queued_users(args.queue_batch, args.output_dir)
+        
+        if not users_to_process:
+            logger.info("No users found in queue")
+            sys.exit(0)
+        
+        logger.info(f"Found {len(users_to_process)} users to process: {users_to_process}")
+        setup_batch_monitoring(users_to_process, args.output_dir)
+        
+        for user in users_to_process:
+            user = user.replace("@", "").strip()
+            if not user:
+                continue
+            
+            logger.info(f"Processing user from queue: {user}")
+            
+            if args.update_queue:
+                update_queue_status(user, "monitoring", args.output_dir)
+            
+            user_output_dir = Path(args.output_dir) / user
+            user_output_dir.mkdir(parents=True, exist_ok=True)
+            
+            try:
+                success = fetch_enhanced_profile_data(
+                    user, 
+                    str(user_output_dir), 
+                    args.history_keep, 
+                    show_friends=args.friends
+                )
+                
+                if args.update_queue:
+                    update_queue_status(user, "completed" if success else "failed", args.output_dir)
+                
+                update_batch_progress(user, success, args.output_dir)
+                
+                if success:
+                    logger.info(f"✅ Successfully processed {user}")
+                else:
+                    logger.error(f"❌ Failed to process {user}")
+                    
+                if user != users_to_process[-1]:
+                    time.sleep(random.uniform(2, 5))
+                    
+            except Exception as e:
+                logger.error(f"❌ Error processing {user}: {e}")
+                if args.update_queue:
+                    update_queue_status(user, "failed", args.output_dir)
+                update_batch_progress(user, False, args.output_dir)
+        
+        logger.info("🎉 Batch processing completed!")
+        sys.exit(0)
+
+    # Handle batch users processing
+    if args.batch_users:
+        logger.info(f"Processing batch of {len(args.batch_users)} users")
+        setup_batch_monitoring(args.batch_users, args.output_dir)
+        
+        for user in args.batch_users:
+            user = user.replace("@", "").strip()
+            if not user:
+                continue
+            
+            logger.info(f"Processing batch user: {user}")
+            
+            user_output_dir = Path(args.output_dir) / user
+            user_output_dir.mkdir(parents=True, exist_ok=True)
+            
+            try:
+                success = fetch_enhanced_profile_data(
+                    user, 
+                    str(user_output_dir), 
+                    args.history_keep, 
+                    show_friends=args.friends
+                )
+                
+                update_batch_progress(user, success, args.output_dir)
+                
+                if success:
+                    logger.info(f"✅ Successfully processed {user}")
+                else:
+                    logger.error(f"❌ Failed to process {user}")
+                    
+                if user != args.batch_users[-1]:
+                    time.sleep(random.uniform(2, 5))
+                    
+            except Exception as e:
+                logger.error(f"❌ Error processing {user}: {e}")
+                update_batch_progress(user, False, args.output_dir)
+        
+        logger.info("🎉 Batch processing completed!")
+        sys.exit(0)
+
+    # Single user processing
+    if not args.target_user:
+        logger.error("Target user is required for single user operations")
+        parser.print_help()
+        sys.exit(1)
+
     user = args.target_user.replace("@", "").strip()
     if not user:
         logger.error("Invalid username provided")
         sys.exit(1)
 
-    # Handle specific commands
+    # Handle specific commands for single user
     if args.show_friends:
         logger.info(f"Showing friends list analysis for: {user}")
         success = show_friends_list_command(user, args.output_dir)
@@ -1033,14 +1078,14 @@ Examples:
         success = compare_friends_over_time(user, args.output_dir)
         sys.exit(0 if success else 1)
 
-    # Main monitoring
+    # Main monitoring for single user
     logger.info(f"Starting enhanced Instagram monitoring for: {user}")
     logger.info(f"Output directory: {Path(args.output_dir).absolute()}")
-    logger.info(f"Email notifications: {ENABLE_EMAIL_NOTIFICATIONS}")
-    logger.info(f"Profile picture detection: {SAVE_PROFILE_PICTURES}")
     logger.info(f"Friends list tracking: {SHOW_FRIENDS_LIST}")
-    logger.info(f"Follower tracking: {TRACK_FOLLOWERS}")
-    logger.info(f"Following tracking: {TRACK_FOLLOWINGS}")
+    logger.info(f"Workflow mode: {args.workflow_mode}")
+
+    if args.workflow_mode and args.update_queue:
+        update_queue_status(user, "monitoring", args.output_dir)
 
     try:
         success = fetch_enhanced_profile_data(
@@ -1049,15 +1094,24 @@ Examples:
             args.history_keep, 
             show_friends=args.friends
         )
+        
+        if args.workflow_mode and args.update_queue:
+            update_queue_status(user, "completed" if success else "failed", args.output_dir)
+        
         if not success:
             logger.error("❌ Enhanced Instagram monitoring failed")
             sys.exit(1)
         logger.info("🎉 Enhanced Instagram monitoring completed successfully!")
+        
     except KeyboardInterrupt:
         logger.info("❌ Monitoring cancelled by user")
+        if args.workflow_mode and args.update_queue:
+            update_queue_status(user, "cancelled", args.output_dir)
         sys.exit(1)
     except Exception as e:
         logger.error(f"❌ Unexpected error: {e}")
+        if args.workflow_mode and args.update_queue:
+            update_queue_status(user, "failed", args.output_dir)
         sys.exit(1)
 
 if __name__ == "__main__":
