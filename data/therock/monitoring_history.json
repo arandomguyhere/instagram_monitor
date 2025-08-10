@@ -103,8 +103,16 @@
       "posts": 8133,
       "is_private": false,
       "method": "anonymous_api"
+    },
+    {
+      "timestamp": "2025-08-10T01:39:01.224051+00:00",
+      "followers": 392939259,
+      "following": 174,
+      "posts": 8133,
+      "is_private": false,
+      "method": "anonymous_api"
     }
   ],
   "username": "therock",
-  "last_updated": "2025-08-10T00:48:49.305966+00:00"
+  "last_updated": "2025-08-10T01:39:01.224051+00:00"
 }
