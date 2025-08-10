@@ -17,6 +17,7 @@ jobs:
           fetch-depth: 0
 
       - name: Apply all fixes
+        id: apply-all-fixes
         uses: actions/github-script@v7
         with:
           script: |
@@ -123,7 +124,7 @@ jobs:
             if (!exists("monitoring_data/.gitkeep")) { write("monitoring_data/.gitkeep", ""); changes.push("monitoring_data/.gitkeep"); }
             if (!exists("data/.gitkeep")) { write("data/.gitkeep", ""); changes.push("data/.gitkeep"); }
 
-            // 6) .gitignore (idempotent write of the canonical contents)
+            // 6) .gitignore (canonical contents)
             const gitignore =
 `__pycache__/
 *.py[cod]
