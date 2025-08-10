@@ -3,14 +3,16 @@
 <div align="center">
   <img src="assets/IGlogo.png" alt="Instagram Monitor Logo" width="120"/>
   <h3>Modern Instagram Monitoring with GitHub Actions</h3>
-  <p>Track Instagram users' activities with automated monitoring and beautiful analytics dashboard</p>
+  <p>Track Instagram users' activities with automated monitoring, friends list analysis, and beautiful analytics dashboard</p>
 </div>
 
-A modern, cloud-native Instagram monitoring tool that runs on GitHub Actions and displays beautiful analytics on GitHub Pages. Track Instagram users' activities, follower changes, posts, stories, and more - all automatically and for free.
+A modern, cloud-native Instagram monitoring tool that runs on GitHub Actions and displays beautiful analytics on GitHub Pages. Track Instagram users' activities, follower changes, posts, stories, friends lists, and more - all automatically and for free.
 
 ## ✨ Features
 
 - 🔄 **Automated Monitoring** - Runs every 3 hours via GitHub Actions
+- 👥 **Friends List Analysis** - Track followers, followings, and mutual connections
+- 🎯 **Workflow Integration** - Auto-queue friends for monitoring
 - 📊 **Beautiful Dashboard** - Modern web interface with charts and analytics
 - 📈 **Historical Tracking** - Complete history of all changes and activities
 - 🔔 **Multiple Notifications** - GitHub Issues, email, and webhook support
@@ -29,6 +31,14 @@ A modern, cloud-native Instagram monitoring tool that runs on GitHub Actions and
 - Profile picture changes
 - Account visibility (public/private) changes
 
+### Friends List Features ✨ NEW
+- **Complete friends tracking** - Monitor who follows and who they follow
+- **Mutual friends detection** - Identify shared connections
+- **Friends change detection** - Track new followers, lost followers, unfollows
+- **Relationship mapping** - Analyze social connections and networks
+- **Export capabilities** - JSON, CSV, and TXT formats
+- **Workflow automation** - Auto-queue friends for monitoring
+
 ### Content Tracking
 - New posts and reels with full metadata
 - Story updates and expiration tracking
@@ -43,6 +53,79 @@ A modern, cloud-native Instagram monitoring tool that runs on GitHub Actions and
 - Content posting patterns
 - Follower acquisition patterns
 
+## 🚫 **What Requires Login (Currently Missing)**
+
+### **1. Friends List Data**
+* ❌ **Followers list** - Cannot retrieve the actual usernames of followers
+* ❌ **Followings list** - Cannot retrieve the actual usernames of people they follow
+* ❌ **Mutual friends analysis** - No way to identify mutual connections
+* ❌ **Friends changes tracking** - Can't detect who unfollowed/followed
+
+### **2. Detailed Post/Reel Content**
+* ❌ **Latest posts/reels details** - Limited to basic info only
+* ❌ **Post comments** - Cannot retrieve comments on posts
+* ❌ **Post likes list** - Cannot see who liked posts
+* ❌ **Tagged users** - Cannot see who's tagged in posts
+* ❌ **Post locations** - Cannot retrieve location data
+
+### **3. Stories Information**
+* ❌ **Story details** - Cannot access any story content
+* ❌ **Story expiry times** - No access to story metadata
+* ❌ **Story media** - Cannot download story images/videos
+
+### **4. Enhanced Monitoring**
+* ❌ **Real-time change detection** - Limited change tracking
+* ❌ **Detailed relationship mapping** - No social network analysis
+* ❌ **Advanced analytics** - Missing engagement data
+
+## ✅ **What Still Works Without Login (Anonymous Mode)**
+
+### **Basic Profile Information:**
+* ✅ **Username** - @therock (Dwayne Johnson)
+* ✅ **Follower count** - 392,939,125
+* ✅ **Following count** - 174
+* ✅ **Posts count** - 8,133
+* ✅ **Profile status** - Public/Private, Verified status
+* ✅ **Bio text** - Profile description
+* ✅ **Profile picture URL** - Can download profile pics
+* ✅ **Basic change detection** - Follower count changes, bio changes
+
+### **Limited Post Data:**
+* ✅ **Post count changes** - Can detect new posts
+* ✅ **Basic post metadata** - Timestamps, URLs
+* ✅ **Public post thumbnails** - Can download images
+
+## 🔧 **What You Need Login For (The Missing 80%)**
+
+The friends list functionality you want requires **authenticated access** because Instagram treats this as sensitive data:
+
+```python
+# This fails without login:
+followers = [follower.username for follower in profile.get_followers()]
+followings = [followee.username for followee in profile.get_followees()]
+
+# Error: "Login required to get a profile's followers/followees"
+```
+
+## 🎯 **The Bottom Line**
+
+**Without login, you get about 20% of the functionality:**
+* Basic profile metrics (what you saw in your test)
+* Profile picture changes
+* Bio changes
+* Post count changes
+
+**With login, you unlock the remaining 80%:**
+* Complete friends lists (followers/followings)
+* Friends analysis and mutual connections
+* Detailed post/story content
+* Advanced change tracking
+* Social network mapping
+
+Your test run was actually **successful** for anonymous monitoring, but the friends list feature (which is the main value-add) requires authentication. That's why the script said "Login required to get a profile's followers."
+
+To unlock the full functionality and get the friends lists that feed into the workflow automation, you'll need to add Instagram credentials.
+
 ## 🚀 Quick Setup
 
 ### 1. Fork this Repository
@@ -51,11 +134,15 @@ Click the "Fork" button at the top of this repository to create your own copy.
 ### 2. Configure Secrets
 Go to your repository's Settings → Secrets and Variables → Actions, then add:
 
-**Required:**
+**Required for Basic Monitoring:**
 ```
-INSTAGRAM_USER=your_instagram_username
-INSTAGRAM_PASS=your_instagram_password
 TARGET_USERNAME=username_to_monitor
+```
+
+**Required for Friends List & Advanced Features:**
+```
+INSTAGRAM_SESSION_USERNAME=your_instagram_username
+INSTAGRAM_SESSION_PASSWORD=your_instagram_password
 ```
 
 **Optional Email Notifications:**
@@ -78,6 +165,73 @@ RECEIVER_EMAIL=notifications@example.com
 2. Click "I understand my workflows, go ahead and enable them"
 3. The monitoring will start automatically
 
+## 🎯 Friends List & Workflow Integration
+
+### Generate Friends List
+```bash
+# Monitor a celebrity and get their friends list
+python monitor.py --target-user taylorswift --friends
+
+# Show existing friends analysis
+python monitor.py --target-user taylorswift --show-friends
+
+# Export friends to CSV
+python monitor.py --target-user taylorswift --export-friends csv
+```
+
+### Create Monitoring Queue
+```bash
+# Create queue with top 30 mutual friends + followers
+python workflow_integration.py --source-user taylorswift --create-queue --max-users 30
+
+# Only mutual friends (higher engagement)
+python workflow_integration.py --source-user celebrity --create-queue --categories mutual_friends --max-users 20
+```
+
+### Setup Automated Workflow
+```bash
+# Generate GitHub Actions workflow
+python workflow_integration.py --setup-workflow
+
+# Check queue status
+python workflow_integration.py --queue-status
+
+# Add users manually
+python workflow_integration.py --add-users user1 user2 user3
+```
+
+### Workflow Features
+- **Smart Batching** - Processes users in configurable batches
+- **Priority System** - Mutual friends get highest priority
+- **Progress Tracking** - Real-time queue status updates
+- **Parallel Processing** - Up to 3 users simultaneously
+- **Artifact Storage** - Data saved for 30 days
+- **Email Notifications** - Get notified of changes
+
+## 📁 File Structure
+
+```
+instagram-monitor/
+├── .github/
+│   └── workflows/
+│       ├── monitor.yml              # Main monitoring workflow
+│       └── monitor-friends.yml      # Friends monitoring workflow
+├── data/                           # Generated monitoring data
+│   ├── username_latest.json        # Current state
+│   ├── username_history.json       # Historical data
+│   ├── username_friends_analysis.json  # Friends analysis
+│   └── username_followers.json     # Complete followers list
+├── monitoring_data/                # Queue processing results
+│   ├── monitoring_queue.json       # Queue of users to monitor
+│   └── user1/                     # Individual user data
+├── assets/                         # UI assets
+├── css/ & js/                     # Dashboard files
+├── monitor.py                     # Core monitoring script
+├── workflow_integration.py        # Friends → workflow integration
+├── index.html                     # Dashboard homepage
+└── README.md                      # This file
+```
+
 ## 📋 Detailed Setup Guide
 
 ### Prerequisites
@@ -92,9 +246,6 @@ RECEIVER_EMAIL=notifications@example.com
 # Clone your forked repository
 git clone https://github.com/yourusername/instagram-monitor.git
 cd instagram-monitor
-
-# Optionally customize the monitoring target
-echo "TARGET_USERNAME=celebrity_username" >> .env
 ```
 
 #### 2. Instagram Credentials Setup
@@ -104,11 +255,33 @@ echo "TARGET_USERNAME=celebrity_username" >> .env
 - Use strong, unique credentials
 - Add to repository secrets
 
-**Option B: Session Import (Advanced)**
-- Export session from your main Instagram account
-- More secure but requires manual renewal
+**Option B: Anonymous Mode (Limited functionality)**
+- No credentials needed
+- Only basic profile metrics available
+- Friends list features disabled
 
-#### 3. Monitoring Configuration
+#### 3. Friends List Monitoring Setup
+
+```bash
+# 1. Install dependencies locally (for setup)
+pip install instaloader requests python-dateutil pytz
+
+# 2. Get a celebrity's friends list
+python monitor.py --target-user taylorswift --friends
+
+# 3. Create monitoring queue from friends
+python workflow_integration.py --source-user taylorswift --create-queue --max-users 30
+
+# 4. Setup automated workflow
+python workflow_integration.py --setup-workflow
+
+# 5. Commit and push
+git add .
+git commit -m "Setup automated friends monitoring"
+git push
+```
+
+#### 4. Monitoring Configuration
 
 Edit `.github/workflows/monitor.yml` to customize:
 
@@ -123,137 +296,60 @@ Available schedules:
 - Daily at 9 AM: `'0 9 * * *'`
 - Twice daily: `'0 9,21 * * *'`
 
-#### 4. Notification Setup
+## 🔧 Advanced Configuration
 
-**GitHub Issues (Default):**
-Notifications are automatically created as GitHub Issues in your repository.
+### Friends List Categories
+- **Mutual Friends** - People who both follow and are followed by the target
+- **Followers Only** - People who follow the target but aren't followed back
+- **Followings Only** - People the target follows but who don't follow back
 
-**Email Notifications:**
-Add SMTP credentials to repository secrets for email alerts.
+### Queue Management
+```bash
+# Check queue status
+python workflow_integration.py --queue-status
 
-**Webhook Notifications:**
-Add `WEBHOOK_URL` secret for Slack, Discord, or custom webhooks.
+# Add users manually
+python workflow_integration.py --add-users user1 user2 user3
 
-### 5. Advanced Configuration
-
-Create `config.json` for advanced settings:
-
-```json
-{
-  "monitoring": {
-    "check_interval_hours": 3,
-    "enable_stories": true,
-    "enable_posts": true,
-    "enable_followers": true,
-    "max_history_entries": 1000
-  },
-  "notifications": {
-    "github_issues": true,
-    "email_on_new_post": true,
-    "email_on_follower_change": true,
-    "webhook_on_all_changes": false
-  },
-  "ui": {
-    "theme": "auto",
-    "show_sensitive_data": false,
-    "chart_animation": true
-  }
-}
+# Reset queue
+python workflow_integration.py --reset-queue
 ```
 
-## 📊 Dashboard Features
+### Export Options
+```bash
+# Export friends to CSV
+python monitor.py --target-user username --export-friends csv
 
-### Main Analytics View
-- **Real-time Statistics** - Current follower count, posts, engagement
-- **Growth Charts** - Interactive follower growth over time
-- **Recent Activity** - Latest posts, stories, and changes
-- **Engagement Metrics** - Average likes, comments, posting frequency
+# Export to JSON
+python monitor.py --target-user username --export-friends json
 
-### Historical Analysis
-- **Timeline View** - All changes in chronological order
-- **Growth Trends** - Daily, weekly, monthly growth patterns
-- **Content Analysis** - Most successful posts, optimal posting times
-- **Follower Insights** - Acquisition and loss patterns
-
-### Data Export
-- **CSV Export** - Raw data for external analysis
-- **JSON API** - Programmatic access to all data
-- **Chart Export** - Save charts as images
-- **Report Generation** - Automated summary reports
-
-## 🔧 Customization
-
-### Monitoring Frequency
-Edit `.github/workflows/monitor.yml`:
-```yaml
-schedule:
-  - cron: '0 */1 * * *'  # Every hour
-```
-
-### Adding Multiple Users
-```yaml
-strategy:
-  matrix:
-    target: ['user1', 'user2', 'user3']
-env:
-  TARGET_USERNAME: ${{ matrix.target }}
-```
-
-### Custom Notifications
-Create custom notification logic in `monitor.py`:
-```python
-def send_custom_notification(change_type, data):
-    # Your custom notification logic
-    webhook_url = os.getenv('CUSTOM_WEBHOOK')
-    # Send to your preferred service
-```
-
-## 📁 File Structure
-
-```
-instagram-monitor/
-├── .github/
-│   └── workflows/
-│       └── monitor.yml          # GitHub Actions workflow
-├── data/                        # Generated monitoring data
-│   ├── username_latest.json     # Current state
-│   └── username_history.json    # Historical data
-├── assets/                      # UI assets
-│   ├── logo.png                # Application logo
-│   └── favicon.ico             # Browser favicon
-├── css/
-│   └── style.css               # Dashboard styles
-├── js/
-│   └── dashboard.js            # Dashboard functionality
-├── monitor.py                  # Core monitoring script
-├── index.html                  # Dashboard homepage
-├── config.json                 # Configuration file
-└── README.md                   # This file
+# View timeline
+python monitor.py --target-user username --friends-timeline
 ```
 
 ## 🚨 Troubleshooting
 
 ### Common Issues
 
-**1. Actions Not Running**
+**1. "Login required for followers"**
+- Add Instagram credentials to GitHub secrets
+- Use INSTAGRAM_SESSION_USERNAME and INSTAGRAM_SESSION_PASSWORD
+- Consider creating a dedicated monitoring account
+
+**2. Actions Not Running**
 - Check if Actions are enabled in repository settings
 - Verify cron syntax in workflow file
 - Ensure repository is not archived
 
-**2. Authentication Errors**
+**3. Authentication Errors**
 - Verify Instagram credentials in secrets
 - Check for recent Instagram security changes
-- Consider using session import method
+- Try using session import method locally first
 
-**3. Missing Data**
-- Check Actions logs for error messages
-- Verify target username exists and is public
-- Ensure sufficient API rate limits
-
-**4. Dashboard Not Loading**
-- Verify GitHub Pages is enabled
-- Check that `index.html` exists in root
-- Clear browser cache and try again
+**4. Missing Friends Data**
+- Ensure authentication is working
+- Check that target profile is public or accessible
+- Verify sufficient API rate limits
 
 ### Debug Mode
 Enable debug logging by adding to secrets:
@@ -262,10 +358,11 @@ DEBUG_MODE=true
 ```
 
 ### Rate Limiting
-Instagram has strict rate limits. If you encounter issues:
-- Increase monitoring interval
-- Use session-based authentication
-- Add random delays between requests
+Instagram has strict rate limits. The system includes:
+- Built-in delays between requests
+- Batch processing with pauses
+- Smart retry logic
+- Parallel processing limits
 
 ## 🔒 Security & Privacy
 
@@ -301,18 +398,6 @@ pip install -r requirements.txt
 
 # Run locally
 python monitor.py --target-user testuser --debug
-```
-
-### Running Tests
-```bash
-# Install test dependencies
-pip install -r requirements-dev.txt
-
-# Run test suite
-pytest tests/
-
-# Run with coverage
-pytest --cov=monitor tests/
 ```
 
 ## 📄 License
