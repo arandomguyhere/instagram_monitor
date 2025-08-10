@@ -1,34 +1,59 @@
 name: Instagram Monitor
+
 on:
   workflow_dispatch:
     inputs:
       users:
-        description: "Comma-separated usernames (no @)"
+        description: "Comma-separated usernames (no @). Leave blank for default."
         required: false
         default: "therock"
   schedule:
-    - cron: "0 */6 * * *"  # every 6 hours (fixed syntax)
+    - cron: "0 */6 * * *"  # every 6 hours
+
 concurrency:
   group: instagram-monitor
   cancel-in-progress: false
+
 permissions:
   contents: write
-  pages: write
-  id-token: write
+
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      user_matrix: ${{ steps.mk.outputs.user_matrix }}
+    steps:
+      - name: Build user matrix from CSV
+        id: mk
+        shell: bash
+        run: |
+          INPUT="${{ github.event.inputs.users }}"
+          if [ -z "$INPUT" ]; then INPUT="therock"; fi
+          ARR=$(python - <<'PY'
+import os, json
+raw = os.environ["INPUT"].strip()
+users = [u.strip().lstrip("@") for u in raw.split(",") if u.strip()]
+print(json.dumps(users if users else ["therock"]))
+PY
+)
+          echo "user_matrix=$ARR" >> "$GITHUB_OUTPUT"
+
   monitor:
+    needs: plan
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        user: ${{ fromJson(format('["{0}"]', github.event.inputs.users != '' && github.event.inputs.users || 'therock')) }}
+        user: ${{ fromJson(needs.plan.outputs.user_matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Cache pip
         uses: actions/cache@v4
         with:
@@ -36,47 +61,55 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
       - name: Run monitor
         env:
-          INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_SESSION_USERNAME }}  # optional
-          INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}  # optional
+          INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_SESSION_USERNAME }}  # or map to IG_USERNAME
+          INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}  # or map to IG_PASSWORD
           CI: "true"
         run: |
-          USERNAME="${{ matrix.user }}"
-          OUT="data/${USERNAME}"
+          USERNAME='${{ matrix.user }}'
+          OUT="monitoring_data/${USERNAME}"
           mkdir -p "$OUT"
-          python monitor.py --target-user "$USERNAME" --output-dir "$OUT"
+          python monitor.py --mode monitor --target-user "$USERNAME" --output-dir "$OUT"
+
       - name: Commit changes (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update IG data for ${{ matrix.user }}"
-          file_pattern: data/**/*.json
+          file_pattern: monitoring_data/**/*.json
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
           skip_dirty_check: false
-  
+
   deploy:
     needs: monitor
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
+
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: "."
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
