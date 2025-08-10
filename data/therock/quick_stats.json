@@ -1,14 +1,14 @@
 {
   "username": "therock",
-  "followers": 392939438,
-  "following": 174,
-  "posts": 8133,
-  "last_updated": "2025-08-10T02:27:36.587875+00:00",
-  "is_private": false,
-  "is_verified": true,
-  "method": "anonymous_api",
-  "profile_pic_url": "https://scontent-ams2-1.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-ams2-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QGj__C1A-MzDPVUhoSU0qo3UaOtST2lpqqNdXyDAfrclZPPiBqY2migmovmM4wJYLc&_nc_ohc=sN5O6rYW_NoQ7kNvwH-2kFM&_nc_gid=fDGceOQytuNf4kQahLyT3g&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfWQK5zdokd_axH04qD0uEStJ1KDlL1X8m-Foo6hIxlW8Q&oe=689DE7C4&_nc_sid=8b3546",
-  "profile_pic_url_hd": "https://scontent-ams2-1.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-ams2-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QGj__C1A-MzDPVUhoSU0qo3UaOtST2lpqqNdXyDAfrclZPPiBqY2migmovmM4wJYLc&_nc_ohc=sN5O6rYW_NoQ7kNvwH-2kFM&_nc_gid=fDGceOQytuNf4kQahLyT3g&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfWQK5zdokd_axH04qD0uEStJ1KDlL1X8m-Foo6hIxlW8Q&oe=689DE7C4&_nc_sid=8b3546",
-  "full_name": "Dwayne Johnson",
-  "bio": "givin’ it some thought"
+  "followers": 0,
+  "following": 0,
+  "posts": 0,
+  "last_updated": "2025-08-10T02:45:43.997469+00:00",
+  "is_private": true,
+  "is_verified": false,
+  "method": "fallback",
+  "profile_pic_url": "",
+  "profile_pic_url_hd": "",
+  "full_name": "therock",
+  "bio": ""
 }

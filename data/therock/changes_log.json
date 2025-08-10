@@ -7,6 +7,13 @@
         "Initial profile picture saved for therock"
       ],
       "timestamp": "2025-08-10T02:27:36.587894+00:00"
+    },
+    {
+      "has_changes": true,
+      "changes_detected": [
+        "First time monitoring this user"
+      ],
+      "timestamp": "2025-08-10T02:45:43.997488+00:00"
     }
   ]
 }
