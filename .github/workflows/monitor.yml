@@ -29,14 +29,15 @@ jobs:
         run: |
           INPUT="${{ github.event.inputs.users }}"
           if [ -z "$INPUT" ]; then INPUT="therock"; fi
-          ARR=$(python - <<'PY'
-import os, json
-raw = os.environ["INPUT"].strip()
+          python - << 'PY'
+import os, json, sys
+raw = os.environ.get("INPUT","").strip()
 users = [u.strip().lstrip("@") for u in raw.split(",") if u.strip()]
-print(json.dumps(users if users else ["therock"]))
+arr = json.dumps(users if users else ["therock"])
+# write to GITHUB_OUTPUT
+with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+    f.write(f"user_matrix={arr}\n")
 PY
-)
-          echo "user_matrix=$ARR" >> "$GITHUB_OUTPUT"
 
   monitor:
     needs: plan
@@ -69,8 +70,8 @@ PY
 
       - name: Run monitor
         env:
-          INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_SESSION_USERNAME }}  # or map to IG_USERNAME
-          INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}  # or map to IG_PASSWORD
+          INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_SESSION_USERNAME }}
+          INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}
           CI: "true"
         run: |
           USERNAME='${{ matrix.user }}'
