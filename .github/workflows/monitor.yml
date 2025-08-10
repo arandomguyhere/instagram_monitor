@@ -25,25 +25,21 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      user_matrix: ${{ steps.mk.outputs.user_matrix }}
+      user_matrix: ${{ steps.mk.outputs.result }}
     steps:
-      - name: Build user matrix from CSV
+      - name: Build user matrix from CSV (no heredoc)
         id: mk
-        shell: bash
-        run: |
-          USERS_INPUT="${{ github.event.inputs.users }}"
-          if [ -z "$USERS_INPUT" ]; then USERS_INPUT="therock"; fi
-          export USERS_INPUT
-          # Write directly to $GITHUB_OUTPUT from Python (no command substitution, no trailing ')')
-          python3 - "$GITHUB_OUTPUT" <<'PY'
-import os, json, sys
-out = sys.argv[1]
-raw = os.environ.get("USERS_INPUT","").strip()
-users = [u.strip().lstrip("@") for u in raw.split(",") if u.strip()]
-arr = json.dumps(users if users else ["therock"])
-with open(out, "a", encoding="utf-8") as f:
-    f.write(f"user_matrix={arr}\n")
-PY
+        uses: actions/github-script@v7
+        with:
+          users: ${{ github.event.inputs.users }}
+          script: |
+            const raw = core.getInput('users') || 'therock';
+            const users = raw
+              .split(',')
+              .map(s => s.trim().replace(/^@/, ''))
+              .filter(Boolean);
+            // Return becomes steps.mk.outputs.result
+            return JSON.stringify(users.length ? users : ['therock']);
 
   monitor:
     needs: plan
