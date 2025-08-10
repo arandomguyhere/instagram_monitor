@@ -28,6 +28,24 @@
     a{color:#8ab4ff; text-decoration:none}
     a:hover{text-decoration:underline}
     .loading{opacity:0.6; pointer-events:none}
+    
+    /* FIXED: Enhanced avatar styling with loading states */
+    #avatar {
+      transition: opacity 0.3s ease;
+      border-radius: 50%;
+      border: 1px solid #1c2a3b;
+      background: #0f1622;
+      object-fit: cover;
+    }
+    
+    #avatar.loading {
+      opacity: 0.6;
+    }
+    
+    #avatar.error {
+      background: #1a2230 url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIyNCIgcj0iMTIiIGZpbGw9IiM2NTZkNzYiLz4KPHBhdGggZD0iTTEyIDUyQzEyIDQxIDIwIDMyIDMyIDMyUzUyIDQxIDUyIDUyIiBmaWxsPSIjNjU2ZDc2Ii8+Cjwvc3ZnPgo=') center/32px no-repeat;
+    }
+    
     @media (max-width: 600px) {
       .wrap{margin:20px auto; padding:0 12px}
       header{flex-direction:column; align-items:stretch; gap:12px}
@@ -41,9 +59,13 @@
   <div class="wrap">
     <header>
       <div class="row">
-        <img id="avatar" alt="avatar" width="64" height="64"
-             style="border-radius:50%; border:1px solid #1c2a3b; background:#0f1622; object-fit:cover"
-             referrerpolicy="no-referrer" />
+        <img id="avatar" 
+             alt="Profile Picture" 
+             width="64" 
+             height="64"
+             referrerpolicy="no-referrer"
+             crossorigin="anonymous"
+             loading="lazy" />
         <div>
           <h1 id="name" style="margin:0 0 6px 0;">Instagram Monitor</h1>
           <div class="muted">
@@ -135,6 +157,7 @@
       throw new Error('No data found');
     }
 
+    // FIXED: Completely rewritten render function with proper avatar handling
     function render(d){
       txt('#name', d.full_name || d.username);
       txt('#username', '@' + d.username);
@@ -146,16 +169,8 @@
       const link = $('#profileLink');
       if (link) link.href = d.profile_url || `https://instagram.com/${d.username}`;
 
-      // Avatar: prefer HD, then normal, else local placeholder; add onerror fallback
-      const pic = d.profile_pic_url_hd || d.profile_pic_url || 'assets/instagram_profile_pic_empty.jpeg';
-      const img = $('#avatar');
-      if (img) {
-        img.onerror = () => { 
-          img.onerror = null; 
-          img.src = 'assets/instagram_profile_pic_empty.jpeg'; 
-        };
-        img.src = pic + (pic.includes('?') ? '&' : '?') + 'ts=' + Date.now();
-      }
+      // FIXED: Robust avatar loading with proper error handling
+      loadAvatar(d);
 
       const method = d.data_collection_method || d.method || 'unknown';
       txt('#methodBadge', method.replace(/_/g,' '));
@@ -170,6 +185,55 @@
       }
     }
 
+    // FIXED: New robust avatar loading function
+    function loadAvatar(data) {
+      const img = $('#avatar');
+      if (!img) return;
+      
+      // Reset state
+      img.className = 'loading';
+      img.onerror = null;
+      img.onload = null;
+      
+      // Define fallback chain
+      const avatarUrls = [
+        data.profile_pic_url_hd,
+        data.profile_pic_url,
+        // Create a proxy URL to bypass CORS issues
+        data.profile_pic_url_hd ? `https://images.weserv.nl/?url=${encodeURIComponent(data.profile_pic_url_hd)}&w=150&h=150` : null,
+        data.profile_pic_url ? `https://images.weserv.nl/?url=${encodeURIComponent(data.profile_pic_url)}&w=150&h=150` : null,
+        'assets/instagram_profile_pic_empty.jpeg'
+      ].filter(Boolean);
+      
+      let currentIndex = 0;
+      
+      function tryNextUrl() {
+        if (currentIndex >= avatarUrls.length) {
+          console.error('All avatar URLs failed');
+          img.className = 'error';
+          return;
+        }
+        
+        const url = avatarUrls[currentIndex];
+        console.log(`Trying avatar URL ${currentIndex + 1}/${avatarUrls.length}:`, url);
+        
+        img.onerror = () => {
+          console.warn(`Avatar URL ${currentIndex + 1} failed:`, url);
+          currentIndex++;
+          tryNextUrl();
+        };
+        
+        img.onload = () => {
+          console.log(`Avatar loaded successfully from URL ${currentIndex + 1}:`, url);
+          img.className = '';
+        };
+        
+        img.src = url;
+      }
+      
+      tryNextUrl();
+    }
+
     function renderFallback(user) {
       show('#demoBadge', true);
       txt('#name', 'No Data Available');
@@ -182,9 +246,12 @@
       const link = $('#profileLink'); 
       if (link) link.href = `https://instagram.com/${user}`;
       
+      // FIXED: Use proper fallback for missing data
       const img = $('#avatar'); 
       if (img) {
+        img.className = 'error';
         img.onerror = null;
+        img.onload = null;
         img.src = 'assets/instagram_profile_pic_empty.jpeg';
       }
       
