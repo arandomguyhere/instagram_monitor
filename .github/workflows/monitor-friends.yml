@@ -1,0 +1,58 @@
+name: Friends Monitor
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_user:
+        description: "Seed account to extract friends from"
+        required: true
+        type: string
+      batch_size:
+        description: "Users to enqueue this run"
+        required: false
+        default: "10"
+        type: string
+
+jobs:
+  friends:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Extract friends
+        env:
+          INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_SESSION_USERNAME }}
+          INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}
+        run: |
+          python monitor.py --mode friends \
+                            --target-user "${{ inputs.target_user }}" \
+                            --out "data/${{ inputs.target_user }}_friends_analysis.json"
+
+      - name: Build/merge monitoring queue
+        id: integrate
+        run: |
+          python workflow_integration.py \
+            --friends-file "data/${{ inputs.target_user }}_friends_analysis.json" \
+            --priority "mutuals,following,followers" \
+            --batch-size ${{ inputs.batch_size }} \
+            --days-between 2
+
+      - name: Commit queue
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add monitoring_data/monitoring_queue.json
+          git commit -m "queue: update via friends of ${{ inputs.target_user }}" || echo "No changes"
+          git push
