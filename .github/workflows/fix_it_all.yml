@@ -167,3 +167,18 @@ pytz>=2023.3
         if: steps.apply-all-fixes.outputs.changed == 'true'
         id: cpr
         uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "fix: production hardening (imports/logger), workflow input export, cleanup & hygiene"
+          title: "Fix: production hardening & workflow hygiene"
+          body: |
+            This PR:
+            - Fixes `monitor.py` imports (`Retry` from `urllib3.util.retry`) and logger handler update
+            - Ensures `export INPUT` wherever the user matrix is built
+            - Removes orphaned files and tracked runtime data
+            - Adds `.gitignore` to keep outputs out of git
+            - Pins `requirements.txt` to safe versions
+          branch: fix/production-hardening
+
+      - name: No-op (nothing to change)
+        if: steps.apply-all-fixes.outputs.changed != 'true'
+        run: echo "No changes needed; repo already hardened."
