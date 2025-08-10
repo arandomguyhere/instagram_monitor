@@ -30,11 +30,10 @@ jobs:
           INPUT="${{ github.event.inputs.users }}"
           if [ -z "$INPUT" ]; then INPUT="therock"; fi
           python - << 'PY'
-import os, json, sys
+import os, json
 raw = os.environ.get("INPUT","").strip()
 users = [u.strip().lstrip("@") for u in raw.split(",") if u.strip()]
 arr = json.dumps(users if users else ["therock"])
-# write to GITHUB_OUTPUT
 with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
     f.write(f"user_matrix={arr}\n")
 PY
@@ -102,15 +101,12 @@ PY
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Pages
         uses: actions/configure-pages@v4
-
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: "."
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
