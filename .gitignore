@@ -1,21 +1,66 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 .env
 .venv
+env/
 venv/
-
-# Data outputs
-monitoring_data/
-data/
-!monitoring_data/.gitkeep
-!data/.gitkeep
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 .DS_Store
+Thumbs.db
 
 # Logs
 *.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+.coverage
+.pytest_cache/
+.tox/
+htmlcov/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Temp files
+*.tmp
+*.bak
+*.backup
+tmp/
+temp/
+
+# Project specific - DON'T ignore the folders, just their contents
+# This allows GitHub Pages to see the structure
+monitoring_data/**/latest.json.tmp
+monitoring_data/**/history.json.tmp
+*.tmp
+
+# But DO track .gitkeep files
+!monitoring_data/.gitkeep
+!data/.gitkeep
+
+# Never track these orphaned config files
+config_server.py
+instagram_monitor_config.py
+config.json.example
+test_setup.py
+placeholder_svg.svg
+instagram_profile_pic_empty.jpeg
