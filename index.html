@@ -402,7 +402,7 @@
       return `data:image/svg+xml;base64,${btoa(svg)}`;
     }
 
-    // Avatar loading
+    // UPDATED: Enhanced avatar loading with multiple fallbacks
     function loadAvatar(data) {
       const img = $('#avatar');
       if (!img) return;
@@ -416,21 +416,104 @@
       img.className = 'loading';
       const username = data.username || 'user';
       
-      // Try profile pic URL if available
-      if (data.profile_pic_url) {
-        img.onerror = () => {
-          img.src = generateAvatarPlaceholder(username);
-          img.className = '';
-        };
-        img.onload = () => {
-          img.className = '';
-        };
-        img.src = config.useHdPics && data.profile_pic_url_hd ? 
-          data.profile_pic_url_hd : data.profile_pic_url;
-      } else {
-        img.src = generateAvatarPlaceholder(username);
-        img.className = '';
+      // Build priority list of image sources
+      const imageSources = [];
+      
+      // Priority 1: Local downloaded file
+      if (username) {
+        imageSources.push(`${BASE}/monitoring_data/${encodeURIComponent(username)}/profile_pic.jpg?t=${Date.now()}`);
       }
+      
+      // Priority 2: HD external URL
+      if (config.useHdPics && data.profile_pic_url_hd) {
+        imageSources.push(data.profile_pic_url_hd);
+      }
+      
+      // Priority 3: Regular external URL
+      if (data.profile_pic_url) {
+        imageSources.push(data.profile_pic_url);
+      }
+      
+      // Priority 4: Placeholder (always works)
+      imageSources.push(generateAvatarPlaceholder(username));
+      
+      console.log('🖼️ Trying avatar sources for', username, ':', imageSources.map(s => s.substring(0, 50) + '...'));
+      
+      tryImageSources(imageSources, img);
+    }
+
+    function tryImageSources(sources, imgElement) {
+      let currentIndex = 0;
+      
+      function tryNext() {
+        if (currentIndex >= sources.length) {
+          // All sources failed, use placeholder as final fallback
+          imgElement.src = generateAvatarPlaceholder('user');
+          imgElement.className = '';
+          console.log('❌ All avatar sources failed, using placeholder');
+          return;
+        }
+        
+        const currentSource = sources[currentIndex];
+        if (!currentSource) {
+          currentIndex++;
+          tryNext();
+          return;
+        }
+        
+        // If this is already a placeholder (SVG), use it directly
+        if (currentSource.startsWith('data:image/svg')) {
+          imgElement.src = currentSource;
+          imgElement.className = '';
+          console.log('✅ Using placeholder avatar');
+          return;
+        }
+        
+        const testImg = new Image();
+        
+        testImg.onload = function() {
+          // Success! Use this source
+          console.log('✅ Avatar loaded:', currentSource.substring(0, 50) + '...');
+          imgElement.onload = () => imgElement.className = '';
+          imgElement.onerror = () => {
+            console.log('⚠️ Avatar loaded in test but failed in main element, trying next');
+            currentIndex++;
+            tryNext();
+          };
+          imgElement.src = currentSource;
+        };
+        
+        testImg.onerror = function() {
+          // This source failed, try next
+          console.log('❌ Avatar failed:', currentSource.substring(0, 50) + '...');
+          currentIndex++;
+          tryNext();
+        };
+        
+        // Set a timeout to avoid hanging on slow loads
+        const timeout = setTimeout(() => {
+          if (testImg.src && !testImg.complete) {
+            console.log('⏰ Avatar load timeout:', currentSource.substring(0, 50) + '...');
+            testImg.onload = testImg.onerror = null;
+            currentIndex++;
+            tryNext();
+          }
+        }, 5000);
+        
+        testImg.onload = function() {
+          clearTimeout(timeout);
+          testImg.constructor.prototype.onload.call(this);
+        };
+        
+        testImg.onerror = function() {
+          clearTimeout(timeout);
+          testImg.constructor.prototype.onerror.call(this);
+        };
+        
+        testImg.src = currentSource;
+      }
+      
+      tryNext();
     }
 
     async function fetchJson(url) {
@@ -483,7 +566,18 @@
       const link = $('#profileLink');
       if (link) link.href = d.profile_url || `https://instagram.com/${d.username}`;
 
+      // Enhanced avatar loading with debugging
       loadAvatar(d);
+      
+      // Debug log
+      console.log('📊 Profile data loaded:', {
+        username: d.username,
+        has_profile_pic_url: !!d.profile_pic_url,
+        profile_pic_url_preview: d.profile_pic_url ? d.profile_pic_url.substring(0, 100) + '...' : 'none',
+        local_profile_pic: d.local_profile_pic,
+        followers: d.followers,
+        source: d.__source
+      });
 
       txt('#methodBadge', d.schema === 'v1' ? 'monitored' : 'unknown');
       txt('#statusBadge', 'live data');
