@@ -16,15 +16,28 @@ import logging
 import time
 from typing import Dict, Optional, Any
 import hashlib
+import re
+
+# Configuration constants
+HISTORY_LIMIT = 100  # Maximum number of history entries to keep
+USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9._]{1,30}$')
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+def validate_username(username: str) -> bool:
+    """Validate Instagram username format"""
+    if not username or not isinstance(username, str):
+        return False
+    # Instagram usernames: 1-30 chars, alphanumeric, dots, underscores
+    return bool(USERNAME_PATTERN.match(username))
+
+
 class InstagramMonitor:
     """Enhanced Instagram monitoring with profile picture download"""
-    
-    def __init__(self, output_dir: str = "./monitoring_data"):
+
+    def __init__(self, output_dir: str = "./monitoring_data", enable_notifications: bool = True):
         self.output_dir = Path(output_dir)
         self.loader = instaloader.Instaloader(
             dirname_pattern=str(self.output_dir / "{target}"),
@@ -38,7 +51,8 @@ class InstagramMonitor:
             post_metadata_txt_pattern="",
             storyitem_metadata_txt_pattern=""
         )
-        
+        self.enable_notifications = enable_notifications
+
         # Login if credentials provided
         self._setup_session()
     
@@ -127,6 +141,11 @@ class InstagramMonitor:
         """
         Extract comprehensive profile data including picture download
         """
+        # Validate username format
+        if not validate_username(username):
+            logger.error(f"❌ Invalid username format: {username}")
+            return None
+
         try:
             logger.info(f"📊 Fetching profile data for @{username}...")
             profile = instaloader.Profile.from_username(self.loader.context, username)
@@ -274,9 +293,9 @@ class InstagramMonitor:
         
         # Add new entry
         history.append(history_entry)
-        
-        # Keep only last 100 entries to prevent file from growing too large
-        history = history[-100:]
+
+        # Keep only last N entries to prevent file from growing too large
+        history = history[-HISTORY_LIMIT:]
         
         # Save updated history
         with open(history_file, 'w', encoding='utf-8') as f:
@@ -313,8 +332,8 @@ class InstagramMonitor:
         # Save data
         self.save_monitoring_data(username, new_data, changes)
         
-        # Send notifications if changes detected
-        if changes:
+        # Send notifications if changes detected and notifications are enabled
+        if changes and self.enable_notifications:
             self.send_notifications(username, changes, new_data)
         
         logger.info(f"✅ Monitoring complete for @{username}")
@@ -397,9 +416,7 @@ Changes detected:
             
             if not github_token or not github_repo:
                 return
-            
-            import requests
-            
+
             # Create issue body
             issue_body = f"""
 ## Instagram Monitor Alert
@@ -418,7 +435,7 @@ Changes detected:
             
             # Create GitHub issue
             headers = {
-                'Authorization': f'token {github_token}',
+                'Authorization': f'Bearer {github_token}',
                 'Accept': 'application/vnd.github.v3+json'
             }
             
@@ -472,9 +489,10 @@ Examples:
     
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
-    
+
     # Create monitor instance
-    monitor = InstagramMonitor(args.output_dir)
+    enable_notifications = not args.no_notifications
+    monitor = InstagramMonitor(args.output_dir, enable_notifications=enable_notifications)
     
     # Monitor the user
     success = monitor.monitor_user(args.target_user)

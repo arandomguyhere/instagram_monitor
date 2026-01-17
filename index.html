@@ -267,6 +267,13 @@
     const show = (q, on=true) => { const el=$(q); if (el) el.style.display = on?'':'none'; };
     const fmt = (n) => (Number(n)||0).toLocaleString();
 
+    // HTML escape function to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     let currentUser = 'therock';
     let refreshTimer = null;
 
@@ -279,8 +286,17 @@
     };
 
     function loadConfig() {
-      const saved = localStorage.getItem('igMonitorConfig');
-      return saved ? {...defaultConfig, ...JSON.parse(saved)} : defaultConfig;
+      try {
+        const saved = localStorage.getItem('igMonitorConfig');
+        if (saved) {
+          return {...defaultConfig, ...JSON.parse(saved)};
+        }
+      } catch (e) {
+        console.warn('Failed to load config from localStorage:', e);
+        // Clear corrupted data
+        localStorage.removeItem('igMonitorConfig');
+      }
+      return defaultConfig;
     }
 
     function saveConfig(config) {
@@ -444,7 +460,7 @@
 
     function tryImageSources(sources, imgElement) {
       let currentIndex = 0;
-      
+
       function tryNext() {
         if (currentIndex >= sources.length) {
           // All sources failed, use placeholder as final fallback
@@ -453,14 +469,14 @@
           console.log('❌ All avatar sources failed, using placeholder');
           return;
         }
-        
+
         const currentSource = sources[currentIndex];
         if (!currentSource) {
           currentIndex++;
           tryNext();
           return;
         }
-        
+
         // If this is already a placeholder (SVG), use it directly
         if (currentSource.startsWith('data:image/svg')) {
           imgElement.src = currentSource;
@@ -468,11 +484,13 @@
           console.log('✅ Using placeholder avatar');
           return;
         }
-        
+
         const testImg = new Image();
-        
-        testImg.onload = function() {
-          // Success! Use this source
+        let handled = false;
+
+        function handleSuccess() {
+          if (handled) return;
+          handled = true;
           console.log('✅ Avatar loaded:', currentSource.substring(0, 50) + '...');
           imgElement.onload = () => imgElement.className = '';
           imgElement.onerror = () => {
@@ -481,38 +499,29 @@
             tryNext();
           };
           imgElement.src = currentSource;
-        };
-        
-        testImg.onerror = function() {
-          // This source failed, try next
-          console.log('❌ Avatar failed:', currentSource.substring(0, 50) + '...');
+        }
+
+        function handleFailure(reason) {
+          if (handled) return;
+          handled = true;
+          console.log(`❌ Avatar failed (${reason}):`, currentSource.substring(0, 50) + '...');
           currentIndex++;
           tryNext();
-        };
-        
+        }
+
+        testImg.onload = () => handleSuccess();
+        testImg.onerror = () => handleFailure('error');
+
         // Set a timeout to avoid hanging on slow loads
-        const timeout = setTimeout(() => {
-          if (testImg.src && !testImg.complete) {
-            console.log('⏰ Avatar load timeout:', currentSource.substring(0, 50) + '...');
-            testImg.onload = testImg.onerror = null;
-            currentIndex++;
-            tryNext();
+        setTimeout(() => {
+          if (!handled && !testImg.complete) {
+            handleFailure('timeout');
           }
         }, 5000);
-        
-        testImg.onload = function() {
-          clearTimeout(timeout);
-          testImg.constructor.prototype.onload.call(this);
-        };
-        
-        testImg.onerror = function() {
-          clearTimeout(timeout);
-          testImg.constructor.prototype.onerror.call(this);
-        };
-        
+
         testImg.src = currentSource;
       }
-      
+
       tryNext();
     }
 
@@ -638,24 +647,28 @@
           if (changes.length > 0) {
             changesEl.innerHTML = changes.map(change => {
               const changeDescriptions = Object.entries(change.changes).map(([key, val]) => {
+                // Escape values to prevent XSS
+                const oldVal = typeof val.old === 'string' ? escapeHtml(val.old) : val.old;
+                const newVal = typeof val.new === 'string' ? escapeHtml(val.new) : val.new;
+
                 if (key === 'followers') return `Followers: ${fmt(val.old)} → ${fmt(val.new)}`;
                 if (key === 'following') return `Following: ${fmt(val.old)} → ${fmt(val.new)}`;
                 if (key === 'posts') return `Posts: ${fmt(val.old)} → ${fmt(val.new)}`;
                 if (key === 'biography') return `Bio updated`;
-                if (key === 'full_name') return `Name changed`;
+                if (key === 'full_name') return `Name: ${oldVal} → ${newVal}`;
                 if (key === 'is_private') return val.new ? `Account made private` : `Account made public`;
                 if (key === 'is_verified') return val.new ? `✓ Verified` : `Verification removed`;
-                return `${key} changed`;
+                return `${escapeHtml(key)} changed`;
               });
-              
+
               return `
                 <div style="border:1px solid #1c2a3b; border-radius:8px; padding:12px; margin-bottom:12px">
                   <div style="color:#8ab4ff; font-size:12px; margin-bottom:8px">
-                    ${new Date(change.timestamp).toLocaleString()}
+                    ${escapeHtml(new Date(change.timestamp).toLocaleString())}
                   </div>
                   ${changeDescriptions.map(c => `<div style="margin-bottom:4px">• ${c}</div>`).join('')}
                 </div>
-              `;
+              `
             }).join('');
           } else {
             changesEl.innerHTML = '<div class="muted" style="text-align:center; padding:40px">No changes detected yet</div>';
