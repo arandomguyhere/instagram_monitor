@@ -258,9 +258,24 @@
   </div>
 
   <script>
-    // Detect GitHub Pages deployment
+    // Detect deployment platform and set base path
     const isGitHubPages = window.location.hostname.includes('github.io');
-    const BASE = isGitHubPages ? '/instagram_monitor' : '';
+    const isGitLabPages = window.location.hostname.includes('gitlab.io');
+
+    // GitLab Pages uses: username.gitlab.io/project-name
+    // GitHub Pages uses: username.github.io/repo-name
+    function getBasePath() {
+      if (isGitHubPages) {
+        return '/instagram_monitor';
+      }
+      if (isGitLabPages) {
+        // Extract project name from path for GitLab Pages
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        return pathParts.length > 0 ? '/' + pathParts[0] : '';
+      }
+      return '';
+    }
+    const BASE = getBasePath();
 
     const $  = (q) => document.querySelector(q);
     const txt = (q, v) => { const el=$(q); if (el) el.textContent = v; };

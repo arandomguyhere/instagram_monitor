@@ -1,16 +1,16 @@
-# Instagram Monitor - GitHub Actions Edition
+# Instagram Monitor
 
 <div align="center">
   <img src="assets/IGlogo.png" alt="Instagram Monitor Logo" width="120"/>
-  <h3>Modern Instagram Monitoring with GitHub Actions</h3>
+  <h3>Modern Instagram Monitoring with CI/CD</h3>
   <p>Track Instagram users' profile metrics with automated monitoring and a beautiful analytics dashboard</p>
 </div>
 
-A cloud-native Instagram monitoring tool that runs on GitHub Actions and displays analytics on GitHub Pages. Track Instagram users' follower counts, profile changes, and more - automatically and for free.
+A cloud-native Instagram monitoring tool that runs on **GitHub Actions** or **GitLab CI/CD** and displays analytics on GitHub/GitLab Pages. Track Instagram users' follower counts, profile changes, and more - automatically and for free.
 
 ## Features
 
-- **Automated Monitoring** - Runs on a schedule via GitHub Actions
+- **Automated Monitoring** - Runs on a schedule via GitHub Actions or GitLab CI
 - **Profile Tracking** - Monitor followers, following, posts, bio changes
 - **Profile Pictures** - Automatic download and caching of profile images
 - **Change Detection** - Track and log all profile changes over time
@@ -76,6 +76,50 @@ RECEIVER_EMAIL=notifications@example.com
 2. Click "I understand my workflows, go ahead and enable them"
 3. Monitoring will start automatically on schedule
 
+---
+
+## GitLab Setup
+
+### 1. Create a New Project
+Create a new GitLab project or import this repository.
+
+### 2. Configure CI/CD Variables
+Go to Settings > CI/CD > Variables, then add:
+
+**Required for committing data back:**
+```
+GITLAB_TOKEN = <your-personal-access-token>
+```
+Create a Personal Access Token with `api` and `write_repository` scopes.
+
+**Optional - Instagram Authentication:**
+```
+INSTAGRAM_SESSION_USERNAME = your_instagram_username
+INSTAGRAM_SESSION_PASSWORD = your_instagram_password
+```
+
+**Optional - Custom User:**
+```
+TARGET_USERNAME = username_to_monitor
+```
+
+### 3. Enable GitLab Pages
+GitLab Pages is enabled automatically when the `pages` job runs. Your dashboard will be available at:
+`https://yourusername.gitlab.io/instagram-monitor/`
+
+### 4. Set Up Pipeline Schedule
+1. Go to CI/CD > Schedules
+2. Click "New schedule"
+3. Set interval (e.g., `0 */6 * * *` for every 6 hours)
+4. Save the schedule
+
+### 5. Run Pipeline Manually (Optional)
+1. Go to CI/CD > Pipelines
+2. Click "Run pipeline"
+3. Optionally set `TARGET_USERNAME` variable for custom user
+
+---
+
 ## Command Line Usage
 
 ### Basic Monitoring
@@ -123,9 +167,10 @@ python workflow_integration.py \
 
 ```
 instagram_monitor/
-├── .github/workflows/
+├── .github/workflows/           # GitHub Actions
 │   ├── monitor.yml              # Main monitoring workflow
 │   └── monitor-friends.yml      # Friends monitoring workflow
+├── .gitlab-ci.yml               # GitLab CI/CD pipeline
 ├── monitoring_data/             # Generated monitoring data
 │   └── {username}/
 │       ├── latest.json          # Current profile state
@@ -166,18 +211,21 @@ Array of snapshots with timestamps and detected changes.
 ## Configuration
 
 ### Monitoring Schedule
-Edit `.github/workflows/monitor.yml` to customize the schedule:
 
+**GitHub Actions:** Edit `.github/workflows/monitor.yml`:
 ```yaml
 schedule:
   - cron: '0 */6 * * *'  # Every 6 hours (default)
 ```
 
+**GitLab CI:** Create a pipeline schedule in CI/CD > Schedules with cron expression.
+
 Common schedules:
-- Every hour: `'0 * * * *'`
-- Every 3 hours: `'0 */3 * * *'`
-- Daily at 9 AM UTC: `'0 9 * * *'`
-- Twice daily: `'0 9,21 * * *'`
+- Every hour: `0 * * * *`
+- Every 3 hours: `0 */3 * * *`
+- Every 6 hours: `0 */6 * * *`
+- Daily at 9 AM UTC: `0 9 * * *`
+- Twice daily: `0 9,21 * * *`
 
 ### Default Monitored Users
 Edit the user list in `restore_all_users.py` or the workflow file:

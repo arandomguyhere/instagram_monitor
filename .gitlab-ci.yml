@@ -1,0 +1,147 @@
+# GitLab CI/CD Pipeline for Instagram Monitor
+# Runs monitoring on schedule and deploys to GitLab Pages
+
+stages:
+  - monitor
+  - deploy
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# Cache pip packages between jobs
+cache:
+  paths:
+    - .cache/pip/
+    - venv/
+
+# Default settings for monitoring jobs
+.monitor_template: &monitor_template
+  stage: monitor
+  image: python:3.11-slim
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+  artifacts:
+    paths:
+      - monitoring_data/
+    expire_in: 30 days
+
+# Monitor individual users in parallel
+monitor_therock:
+  <<: *monitor_template
+  script:
+    - python monitor.py --target-user therock --output-dir monitoring_data
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+monitor_cristiano:
+  <<: *monitor_template
+  script:
+    - python monitor.py --target-user cristiano --output-dir monitoring_data
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+monitor_selenagomez:
+  <<: *monitor_template
+  script:
+    - python monitor.py --target-user selenagomez --output-dir monitoring_data
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+monitor_taylorswift:
+  <<: *monitor_template
+  script:
+    - python monitor.py --target-user taylorswift --output-dir monitoring_data
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+monitor_kimkardashian:
+  <<: *monitor_template
+  script:
+    - python monitor.py --target-user kimkardashian --output-dir monitoring_data
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+# Monitor custom user (manual trigger with variable)
+monitor_custom:
+  <<: *monitor_template
+  script:
+    - python monitor.py --target-user "$TARGET_USERNAME" --output-dir monitoring_data
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web" && $TARGET_USERNAME != null
+
+# Commit monitoring data back to repository
+commit_data:
+  stage: monitor
+  image: alpine:latest
+  needs:
+    - job: monitor_therock
+      optional: true
+    - job: monitor_cristiano
+      optional: true
+    - job: monitor_selenagomez
+      optional: true
+    - job: monitor_taylorswift
+      optional: true
+    - job: monitor_kimkardashian
+      optional: true
+    - job: monitor_custom
+      optional: true
+  before_script:
+    - apk add --no-cache git
+    - git config --global user.email "gitlab-ci@gitlab.com"
+    - git config --global user.name "GitLab CI"
+  script:
+    - |
+      if [ -d "monitoring_data" ] && [ "$(ls -A monitoring_data 2>/dev/null)" ]; then
+        git add monitoring_data/
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore: update monitoring data [skip ci]"
+          git push "https://oauth2:${GITLAB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" HEAD:${CI_COMMIT_REF_NAME}
+        fi
+      else
+        echo "No monitoring data to commit"
+      fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+# Deploy to GitLab Pages
+pages:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - mkdir -p public
+    - cp index.html public/
+    - cp -r assets public/ 2>/dev/null || true
+    - cp -r monitoring_data public/ 2>/dev/null || true
+    - cp -r data public/ 2>/dev/null || true
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+# Manual job to restore all users
+restore_all_users:
+  <<: *monitor_template
+  script:
+    - python restore_all_users.py
+  artifacts:
+    paths:
+      - monitoring_data/
+    expire_in: 30 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual

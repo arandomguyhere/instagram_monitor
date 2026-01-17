@@ -345,11 +345,15 @@ class InstagramMonitor:
             # Email notifications (if configured)
             if os.getenv('SMTP_HOST'):
                 self.send_email_notification(username, changes, profile_data)
-            
+
             # GitHub Issues (if in GitHub Actions)
             if os.getenv('GITHUB_ACTIONS'):
                 self.create_github_issue(username, changes, profile_data)
-                
+
+            # GitLab Issues (if in GitLab CI)
+            if os.getenv('GITLAB_CI'):
+                self.create_gitlab_issue(username, changes, profile_data)
+
         except Exception as e:
             logger.warning(f"⚠️ Notification failed: {e}")
     
@@ -455,9 +459,62 @@ Changes detected:
                 logger.info(f"📝 GitHub issue created for @{username}")
             else:
                 logger.warning(f"⚠️ GitHub issue creation failed: {response.status_code}")
-                
+
         except Exception as e:
             logger.warning(f"⚠️ GitHub issue creation failed: {e}")
+
+    def create_gitlab_issue(self, username: str, changes: Dict[str, Any], profile_data: Dict[str, Any]):
+        """Create GitLab issue for changes (when running in GitLab CI)"""
+        try:
+            gitlab_token = os.getenv('GITLAB_TOKEN')
+            project_id = os.getenv('CI_PROJECT_ID')
+            gitlab_url = os.getenv('CI_SERVER_URL', 'https://gitlab.com')
+
+            if not gitlab_token or not project_id:
+                return
+
+            # Create issue body
+            issue_body = f"""
+## Instagram Monitor Alert
+
+**Profile:** [@{username}](https://instagram.com/{username})
+**Full Name:** {profile_data.get('full_name', 'N/A')}
+**Current Followers:** {profile_data.get('followers', 'N/A'):,}
+
+### Changes Detected:
+"""
+
+            for field, change in changes.items():
+                issue_body += f"- **{field}:** `{change['old']}` → `{change['new']}`\n"
+
+            issue_body += f"\n**Monitored at:** {profile_data['last_updated']}"
+
+            # Create GitLab issue
+            headers = {
+                'PRIVATE-TOKEN': gitlab_token,
+                'Content-Type': 'application/json'
+            }
+
+            issue_data = {
+                'title': f'Instagram Changes: @{username}',
+                'description': issue_body,
+                'labels': 'instagram-monitor,changes-detected'
+            }
+
+            response = requests.post(
+                f'{gitlab_url}/api/v4/projects/{project_id}/issues',
+                headers=headers,
+                json=issue_data
+            )
+
+            if response.status_code == 201:
+                logger.info(f"📝 GitLab issue created for @{username}")
+            else:
+                logger.warning(f"⚠️ GitLab issue creation failed: {response.status_code}")
+
+        except Exception as e:
+            logger.warning(f"⚠️ GitLab issue creation failed: {e}")
+
 
 def main():
     parser = argparse.ArgumentParser(
