@@ -383,5 +383,50 @@
         "new": "https://scontent-sjc3-1.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-sjc3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QEpkiVvvvacabRwzDifnz2vM2Jdx21lX_O5bnDu_NMFRYfpCAsQKrI_MUMYz9Iq5-8&_nc_ohc=kkrvQ3O_cqYQ7kNvwGfAXhj&_nc_gid=CKunSM6B18vbLIgz36Qglg&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfUniDCwPyM5XlkoK3jaarxEP6OkCredne-2E1TbaMr7Uw&oe=689F0104&_nc_sid=8b3546"
       }
     }
+  },
+  {
+    "timestamp": "2026-01-17T15:57:01.341593+00:00",
+    "snapshot": {
+      "username": "therock",
+      "full_name": "Dwayne Johnson",
+      "biography": "Artist, family man, tequila sipper ~ not in that order 🤎🥃",
+      "is_private": false,
+      "is_verified": true,
+      "followers": 390965268,
+      "following": 283,
+      "posts": 8281,
+      "profile_pic_url": "https://scontent-ord5-2.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-ord5-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QEmyNtwv0hWjYjHWJn2DLX2HhEkXIqukZJODXL-b3hT7aOMEXIU3_XD6oR_o4PlzPc&_nc_ohc=Sp29A0E_KhkQ7kNvwHFKEvC&_nc_gid=znWKHu204Q6jU1R5gWoSBg&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Afppus2u6wKsSTnP1UbVN2geIw1JDeiCNJvqsUCV9B-2Vw&oe=69718084&_nc_sid=8b3546",
+      "last_updated": "2026-01-17T15:57:01.341593+00:00",
+      "schema": "v1",
+      "local_profile_pic": "monitoring_data/therock/profile_pic.jpg",
+      "profile_pic_downloaded": true
+    },
+    "changes": {
+      "biography": {
+        "old": "givin’ it some thought",
+        "new": "Artist, family man, tequila sipper ~ not in that order 🤎🥃",
+        "timestamp": "2026-01-17T15:57:01.341593+00:00"
+      },
+      "followers": {
+        "old": 392930049,
+        "new": 390965268,
+        "timestamp": "2026-01-17T15:57:01.341593+00:00"
+      },
+      "following": {
+        "old": 175,
+        "new": 283,
+        "timestamp": "2026-01-17T15:57:01.341593+00:00"
+      },
+      "posts": {
+        "old": 8133,
+        "new": 8281,
+        "timestamp": "2026-01-17T15:57:01.341593+00:00"
+      },
+      "profile_pic_url": {
+        "old": "https://scontent-sjc3-1.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-sjc3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QEpkiVvvvacabRwzDifnz2vM2Jdx21lX_O5bnDu_NMFRYfpCAsQKrI_MUMYz9Iq5-8&_nc_ohc=kkrvQ3O_cqYQ7kNvwGfAXhj&_nc_gid=CKunSM6B18vbLIgz36Qglg&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfUniDCwPyM5XlkoK3jaarxEP6OkCredne-2E1TbaMr7Uw&oe=689F0104&_nc_sid=8b3546",
+        "new": "https://scontent-ord5-2.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-ord5-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QEmyNtwv0hWjYjHWJn2DLX2HhEkXIqukZJODXL-b3hT7aOMEXIU3_XD6oR_o4PlzPc&_nc_ohc=Sp29A0E_KhkQ7kNvwHFKEvC&_nc_gid=znWKHu204Q6jU1R5gWoSBg&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Afppus2u6wKsSTnP1UbVN2geIw1JDeiCNJvqsUCV9B-2Vw&oe=69718084&_nc_sid=8b3546",
+        "timestamp": "2026-01-17T15:57:01.341593+00:00"
+      }
+    }
   }
 ]
