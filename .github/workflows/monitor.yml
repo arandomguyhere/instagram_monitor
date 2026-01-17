@@ -7,10 +7,6 @@ on:
         description: "Comma-separated usernames (no @). Leave blank for default."
         required: false
         default: "therock"
-      prefer_mobile:
-        description: "Prefer mobile web JSON fallback for profiles"
-        required: false
-        default: "false"
   schedule:
     - cron: "0 */6 * * *"
 
@@ -85,27 +81,13 @@ jobs:
           INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}
         run: |
           USERNAME='${{ matrix.user }}'
-          OUT="monitoring_data/${USERNAME}"
+          OUT="monitoring_data"
           mkdir -p "$OUT"
-          
-          # Always download profile pictures
-          FLAGS="--download-pfp --verbosity 1"
-          
-          if [ "${{ github.event.inputs.prefer_mobile }}" = "true" ]; then
-            FLAGS="$FLAGS --prefer-mobile"
-          fi
-          
-          if [ -z "${INSTAGRAM_SESSION_USERNAME}" ] || [ -z "${INSTAGRAM_SESSION_PASSWORD}" ]; then
-            echo "[info] No IG creds detected; using --unauth-only"
-            FLAGS="$FLAGS --unauth-only"
-          fi
-          
-          echo "Running: python monitor.py --mode monitor --target-user '$USERNAME' --output-dir '$OUT' $FLAGS"
+
+          echo "Running: python monitor.py --target-user '$USERNAME' --output-dir '$OUT'"
           python monitor.py \
-            --mode monitor \
             --target-user "$USERNAME" \
-            --output-dir "$OUT" \
-            $FLAGS
+            --output-dir "$OUT"
             
       - name: Commit changes (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
