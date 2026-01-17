@@ -111,7 +111,8 @@ def main():
     # Sort: never-checked first, then oldest check, then score desc, then username
     def sort_key(it):
         lc = it.get("last_checked_at") or ""
-        ts = datetime.min if not lc else datetime.fromisoformat(lc)
+        # Use timezone-aware datetime.min to avoid comparison issues
+        ts = datetime.min.replace(tzinfo=timezone.utc) if not lc else datetime.fromisoformat(lc)
         return (lc is not None, ts, -it.get("score", 0), it["username"])
 
     queue["items"].sort(key=sort_key)
