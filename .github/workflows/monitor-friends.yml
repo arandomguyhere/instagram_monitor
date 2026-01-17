@@ -36,23 +36,16 @@ jobs:
           INSTAGRAM_SESSION_USERNAME: ${{ secrets.INSTAGRAM_SESSION_USERNAME }}
           INSTAGRAM_SESSION_PASSWORD: ${{ secrets.INSTAGRAM_SESSION_PASSWORD }}
         run: |
-          python monitor.py --mode friends \
-                            --target-user "${{ inputs.target_user }}" \
-                            --out "data/${{ inputs.target_user }}_friends_analysis.json"
+          # Monitor the target user with friends analysis flag
+          python monitor.py \
+            --target-user "${{ inputs.target_user }}" \
+            --output-dir "monitoring_data" \
+            --friends
 
-      - name: Build/merge monitoring queue
-        id: integrate
-        run: |
-          python workflow_integration.py \
-            --friends-file "data/${{ inputs.target_user }}_friends_analysis.json" \
-            --priority "mutuals,following,followers" \
-            --batch-size ${{ inputs.batch_size }} \
-            --days-between 2
-
-      - name: Commit queue
+      - name: Commit changes
         run: |
           git config user.name "github-actions"
           git config user.email "actions@users.noreply.github.com"
-          git add monitoring_data/monitoring_queue.json
-          git commit -m "queue: update via friends of ${{ inputs.target_user }}" || echo "No changes"
-          git push
+          git add monitoring_data/
+          git diff --cached --quiet || git commit -m "chore: monitor ${{ inputs.target_user }} with friends analysis"
+          git push || echo "Nothing to push"
