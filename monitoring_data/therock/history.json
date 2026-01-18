@@ -458,5 +458,35 @@
         "timestamp": "2026-01-17T18:14:49.069384+00:00"
       }
     }
+  },
+  {
+    "timestamp": "2026-01-18T00:59:38.302754+00:00",
+    "snapshot": {
+      "username": "therock",
+      "full_name": "Dwayne Johnson",
+      "biography": "Artist, family man, tequila sipper ~ not in that order 🤎🥃",
+      "is_private": false,
+      "is_verified": true,
+      "followers": 390943986,
+      "following": 283,
+      "posts": 8281,
+      "profile_pic_url": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QF1q7KWS5qNW91HWb0TXy2kcOQcmS8A3C6FgvWHx458tSBEakJgcmV3_WritYiea50&_nc_ohc=Sp29A0E_KhkQ7kNvwFjW3fQ&_nc_gid=-oAKFNt8Ika0hFbS1Lp4GA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Afr_BDRPShruAjVqW_X6NBZB2eWkOlJDeIX1MDy7B0X5Mg&oe=6971F104&_nc_sid=8b3546",
+      "last_updated": "2026-01-18T00:59:38.302754+00:00",
+      "schema": "v1",
+      "local_profile_pic": "monitoring_data/therock/profile_pic.jpg",
+      "profile_pic_downloaded": true
+    },
+    "changes": {
+      "followers": {
+        "old": 390964293,
+        "new": 390943986,
+        "timestamp": "2026-01-18T00:59:38.302754+00:00"
+      },
+      "profile_pic_url": {
+        "old": "https://scontent-ord5-2.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-ord5-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QFDy0jsVxt8lfSI94CW0yxMDqXfD3w8Y0E-2VMWB8qfypcqwdz6BiMpu7kZpmX1YIo&_nc_ohc=Sp29A0E_KhkQ7kNvwHwDtVJ&_nc_gid=RTKRYYkqjGM8W1wizktz2w&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Afr7Y7KzOUuoR_vQGWmLgz0IHJPfWzClG6JrfLYLGiYj-Q&oe=6971B8C4&_nc_sid=8b3546",
+        "new": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QF1q7KWS5qNW91HWb0TXy2kcOQcmS8A3C6FgvWHx458tSBEakJgcmV3_WritYiea50&_nc_ohc=Sp29A0E_KhkQ7kNvwFjW3fQ&_nc_gid=-oAKFNt8Ika0hFbS1Lp4GA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Afr_BDRPShruAjVqW_X6NBZB2eWkOlJDeIX1MDy7B0X5Mg&oe=6971F104&_nc_sid=8b3546",
+        "timestamp": "2026-01-18T00:59:38.302754+00:00"
+      }
+    }
   }
 ]
