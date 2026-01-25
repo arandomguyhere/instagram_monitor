@@ -603,5 +603,40 @@
         "timestamp": "2026-01-24T00:53:39.124156+00:00"
       }
     }
+  },
+  {
+    "timestamp": "2026-01-25T01:01:09.154728+00:00",
+    "snapshot": {
+      "username": "therock",
+      "full_name": "Dwayne Johnson",
+      "biography": "Artist, family man, tequila sipster ~ not in that order 🤎🥃",
+      "is_private": false,
+      "is_verified": true,
+      "followers": 390994719,
+      "following": 287,
+      "posts": 8286,
+      "profile_pic_url": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QF9YguA24jokcZtMKYXzQ-xF8qpcjoUnAOpkkd4DC6EMeZ1sKWkLuK-GHd-uzx-B44&_nc_ohc=ycMl3G5wZYYQ7kNvwE7NG4E&_nc_gid=Upggeq3GwnXEYJHHJ8TmZA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfoP9YDRpDEZ-cHRPlSXBhLfMo1Yib51biTrv_pW_4YZsA&oe=697B2B84&_nc_sid=8b3546",
+      "last_updated": "2026-01-25T01:01:09.154728+00:00",
+      "schema": "v1",
+      "local_profile_pic": "monitoring_data/therock/profile_pic.jpg",
+      "profile_pic_downloaded": true
+    },
+    "changes": {
+      "followers": {
+        "old": 391007896,
+        "new": 390994719,
+        "timestamp": "2026-01-25T01:01:09.154728+00:00"
+      },
+      "following": {
+        "old": 284,
+        "new": 287,
+        "timestamp": "2026-01-25T01:01:09.154728+00:00"
+      },
+      "profile_pic_url": {
+        "old": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QHaegxqVydviLJ8Sf5THrdOpwc1ot2XMDjaQW0qLpjbNvYSJYRylUQl6s_aTnKpGXI&_nc_ohc=ycMl3G5wZYYQ7kNvwG0B_sZ&_nc_gid=x9ZwCXBOlMfWLT1-lq29tg&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Afqh4rbDFuEnSt89K7t-OdHR_2jWeeOypmtXGvYhK5XaIg&oe=6979DA04&_nc_sid=8b3546",
+        "new": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/11850309_1674349799447611_206178162_a.jpg?stp=dst-jpg_e0_s150x150_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xNTAuYzIifQ&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QF9YguA24jokcZtMKYXzQ-xF8qpcjoUnAOpkkd4DC6EMeZ1sKWkLuK-GHd-uzx-B44&_nc_ohc=ycMl3G5wZYYQ7kNvwE7NG4E&_nc_gid=Upggeq3GwnXEYJHHJ8TmZA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfoP9YDRpDEZ-cHRPlSXBhLfMo1Yib51biTrv_pW_4YZsA&oe=697B2B84&_nc_sid=8b3546",
+        "timestamp": "2026-01-25T01:01:09.154728+00:00"
+      }
+    }
   }
 ]
