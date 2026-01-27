@@ -197,5 +197,35 @@
         "timestamp": "2026-01-24T12:19:41.526778+00:00"
       }
     }
+  },
+  {
+    "timestamp": "2026-01-27T12:24:25.717063+00:00",
+    "snapshot": {
+      "username": "taylorswift",
+      "full_name": "Taylor Swift",
+      "biography": "And, baby, that’s show business for you. New album The Life of a Showgirl. Available now  ❤️‍🔥",
+      "is_private": false,
+      "is_verified": true,
+      "followers": 280982148,
+      "following": 0,
+      "posts": 701,
+      "profile_pic_url": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/558299267_18598352038054956_7239389867355254960_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QF9AiFnpgsFyAL7xPqclYAFnThpDaelTuJrty_HUnikmz9MW4qGt4PBsaJPiNsDFVQ&_nc_ohc=RWaC_ca7ucoQ7kNvwHbqYGu&_nc_gid=ochPGJnLm_CHqJTUxf69Iw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Afrl7Wh4daI4n5dAfbHuejjNghw9t-1jkKK3ou9ypSypbg&oe=697E7911&_nc_sid=8b3546",
+      "last_updated": "2026-01-27T12:24:25.717063+00:00",
+      "schema": "v1",
+      "local_profile_pic": "monitoring_data/taylorswift/profile_pic.jpg",
+      "profile_pic_downloaded": true
+    },
+    "changes": {
+      "followers": {
+        "old": 281032274,
+        "new": 280982148,
+        "timestamp": "2026-01-27T12:24:25.717063+00:00"
+      },
+      "profile_pic_url": {
+        "old": "https://scontent-fra5-2.cdninstagram.com/v/t51.2885-19/558299267_18598352038054956_7239389867355254960_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=scontent-fra5-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QE3L-lNSlK-9YIrJQD9kTLKtu-GtYm-NEQjfc0m97hyHsOIs3mVzNImkfF848FJVeo&_nc_ohc=tN85cOAxQxAQ7kNvwEcNK5B&_nc_gid=QQ1KG1IcBTvF3SzYMY-OJQ&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfpMslZ6ZGCmvdjLwdPvo7nF27giEN__WLVlT9xl-AgV0w&oe=697A8491&_nc_sid=8b3546",
+        "new": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/558299267_18598352038054956_7239389867355254960_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QF9AiFnpgsFyAL7xPqclYAFnThpDaelTuJrty_HUnikmz9MW4qGt4PBsaJPiNsDFVQ&_nc_ohc=RWaC_ca7ucoQ7kNvwHbqYGu&_nc_gid=ochPGJnLm_CHqJTUxf69Iw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_Afrl7Wh4daI4n5dAfbHuejjNghw9t-1jkKK3ou9ypSypbg&oe=697E7911&_nc_sid=8b3546",
+        "timestamp": "2026-01-27T12:24:25.717063+00:00"
+      }
+    }
   }
 ]
