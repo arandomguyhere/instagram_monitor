@@ -242,5 +242,40 @@
         "timestamp": "2026-01-28T06:20:51.674623+00:00"
       }
     }
+  },
+  {
+    "timestamp": "2026-01-30T01:03:49.387673+00:00",
+    "snapshot": {
+      "username": "kimkardashian",
+      "full_name": "Kim Kardashian",
+      "biography": "@SKIMS",
+      "is_private": false,
+      "is_verified": true,
+      "followers": 353704825,
+      "following": 355,
+      "posts": 6585,
+      "profile_pic_url": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/314397231_636674618202803_1672434101401302981_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDI4LmMyIn0&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QFcbMvtcRLbgVtRmcrcw8bmtCQ2F3QaHEU6mNc581kky9JhlpwP_isByZ7WL1IE5_I&_nc_ohc=66tDIUlYohkQ7kNvwHiGIGU&_nc_gid=pVzFkJPBQC373wVKFr9TDw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfoZPhEnse_qq_sfjCTfJzDGbRmSWTBJA95FxDRGHIi3vQ&oe=6981CADE&_nc_sid=8b3546",
+      "last_updated": "2026-01-30T01:03:49.387673+00:00",
+      "schema": "v1",
+      "local_profile_pic": "monitoring_data/kimkardashian/profile_pic.jpg",
+      "profile_pic_downloaded": true
+    },
+    "changes": {
+      "followers": {
+        "old": 353741044,
+        "new": 353704825,
+        "timestamp": "2026-01-30T01:03:49.387673+00:00"
+      },
+      "posts": {
+        "old": 6582,
+        "new": 6585,
+        "timestamp": "2026-01-30T01:03:49.387673+00:00"
+      },
+      "profile_pic_url": {
+        "old": "https://scontent-iad3-1.cdninstagram.com/v/t51.2885-19/314397231_636674618202803_1672434101401302981_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDI4LmMyIn0&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QGMMPLwF6-XmfOsY90j0GXwdhvZSWAaF_JkI0uK8UEKwNEX__Vcg_fQBRs_QwnV5Ow&_nc_ohc=54BV8JMvLBIQ7kNvwEZdF1o&_nc_gid=qsPQZ42eGEMlZH_dv77wBg&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfoBJzahiFNeuN2mW-8vV6OwT088gv77BiUHkjG25ot9VA&oe=697F985E&_nc_sid=8b3546",
+        "new": "https://scontent-iad3-2.cdninstagram.com/v/t51.2885-19/314397231_636674618202803_1672434101401302981_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDI4LmMyIn0&_nc_ht=scontent-iad3-2.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QFcbMvtcRLbgVtRmcrcw8bmtCQ2F3QaHEU6mNc581kky9JhlpwP_isByZ7WL1IE5_I&_nc_ohc=66tDIUlYohkQ7kNvwHiGIGU&_nc_gid=pVzFkJPBQC373wVKFr9TDw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfoZPhEnse_qq_sfjCTfJzDGbRmSWTBJA95FxDRGHIi3vQ&oe=6981CADE&_nc_sid=8b3546",
+        "timestamp": "2026-01-30T01:03:49.387673+00:00"
+      }
+    }
   }
 ]
