@@ -307,5 +307,35 @@
         "timestamp": "2026-01-30T12:29:41.577182+00:00"
       }
     }
+  },
+  {
+    "timestamp": "2026-01-31T06:24:43.468854+00:00",
+    "snapshot": {
+      "username": "kimkardashian",
+      "full_name": "Kim Kardashian",
+      "biography": "@SKIMS",
+      "is_private": false,
+      "is_verified": true,
+      "followers": 353682456,
+      "following": 355,
+      "posts": 6585,
+      "profile_pic_url": "https://scontent-atl3-1.cdninstagram.com/v/t51.2885-19/314397231_636674618202803_1672434101401302981_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDI4LmMyIn0&_nc_ht=scontent-atl3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QF9gcjPDTR9LuZbii3hVvNvuTyoCCy8bSkKGBLdAAYTzEBmI87W7gJq4uch-E2KYY0&_nc_ohc=66tDIUlYohkQ7kNvwHYJuf4&_nc_gid=3GcJ203z_RgjdMaPPvz6lA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfurxYE7bnkFTIXEE-rt0qam9IVBA2CUJ_iJyLkYNpNI3g&oe=69838CDE&_nc_sid=8b3546",
+      "last_updated": "2026-01-31T06:24:43.468854+00:00",
+      "schema": "v1",
+      "local_profile_pic": "monitoring_data/kimkardashian/profile_pic.jpg",
+      "profile_pic_downloaded": true
+    },
+    "changes": {
+      "followers": {
+        "old": 353697952,
+        "new": 353682456,
+        "timestamp": "2026-01-31T06:24:43.468854+00:00"
+      },
+      "profile_pic_url": {
+        "old": "https://scontent-atl3-1.cdninstagram.com/v/t51.2885-19/314397231_636674618202803_1672434101401302981_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDI4LmMyIn0&_nc_ht=scontent-atl3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QH5nNJRByK1MIl7gPlGQrxL-DiG33AVk_Zp5Id8Ui-Xp8T8I4Z5TEL8hxcR9C-Oc6M&_nc_ohc=66tDIUlYohkQ7kNvwERaVEn&_nc_gid=mGAh_oAFAtb7NbiKIvaXjw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfpeIOIl_ZdGUvrTTNh_HhG3KhnGOZoKdLV8yFEU72RRjQ&oe=6982739E&_nc_sid=8b3546",
+        "new": "https://scontent-atl3-1.cdninstagram.com/v/t51.2885-19/314397231_636674618202803_1672434101401302981_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDI4LmMyIn0&_nc_ht=scontent-atl3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QF9gcjPDTR9LuZbii3hVvNvuTyoCCy8bSkKGBLdAAYTzEBmI87W7gJq4uch-E2KYY0&_nc_ohc=66tDIUlYohkQ7kNvwHYJuf4&_nc_gid=3GcJ203z_RgjdMaPPvz6lA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfurxYE7bnkFTIXEE-rt0qam9IVBA2CUJ_iJyLkYNpNI3g&oe=69838CDE&_nc_sid=8b3546",
+        "timestamp": "2026-01-31T06:24:43.468854+00:00"
+      }
+    }
   }
 ]
