@@ -602,5 +602,35 @@
         "timestamp": "2026-02-02T06:49:56.363959+00:00"
       }
     }
+  },
+  {
+    "timestamp": "2026-02-03T01:07:49.076033+00:00",
+    "snapshot": {
+      "username": "selenagomez",
+      "full_name": "Selena Gomez",
+      "biography": "“In The Dark” & “I Said I Love You First...And You Said It Back” Out Now \nFounder @rarebeauty\nFounder/CIO @officialwondermind",
+      "is_private": false,
+      "is_verified": true,
+      "followers": 415490953,
+      "following": 360,
+      "posts": 2153,
+      "profile_pic_url": "https://scontent-iad3-1.cdninstagram.com/v/t51.2885-19/506310332_18609160939019724_3952420009186030627_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDMyLmMyIn0&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QGF4tOsd24x_UU7dAFQQUDvGvMYYhU2dH33mCUO7ppiBNM7c9wH_9vgO9LQB8QmF3A&_nc_ohc=2xGGOEeUo_EQ7kNvwGvGrC_&_nc_gid=AnW8kHdrc1M84C-4EdZx9w&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfumunrwCqH9v8FLt8Wshy0fVwUaHF86XYf7-cJNrmRZnA&oe=69871BCB&_nc_sid=8b3546",
+      "last_updated": "2026-02-03T01:07:49.076033+00:00",
+      "schema": "v1",
+      "local_profile_pic": "monitoring_data/selenagomez/profile_pic.jpg",
+      "profile_pic_downloaded": true
+    },
+    "changes": {
+      "followers": {
+        "old": 415506591,
+        "new": 415490953,
+        "timestamp": "2026-02-03T01:07:49.076033+00:00"
+      },
+      "profile_pic_url": {
+        "old": "https://scontent-ams2-1.cdninstagram.com/v/t51.2885-19/506310332_18609160939019724_3952420009186030627_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDMyLmMyIn0&_nc_ht=scontent-ams2-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QGEN2RvQHw4Qt3Z4TfDArHF9a8XdgtnnklcZZNMsnU-0JZtbW0DxvdaxuyFvFmX_uk&_nc_ohc=2xGGOEeUo_EQ7kNvwHTJgq5&_nc_gid=iaII38CEH5XqZyeaFiSHdw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfuM4Zxvodjxk-3TnPwC0PrMKtjSv56rw53V0g10C9O1JQ&oe=6986028B&_nc_sid=8b3546",
+        "new": "https://scontent-iad3-1.cdninstagram.com/v/t51.2885-19/506310332_18609160939019724_3952420009186030627_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDMyLmMyIn0&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QGF4tOsd24x_UU7dAFQQUDvGvMYYhU2dH33mCUO7ppiBNM7c9wH_9vgO9LQB8QmF3A&_nc_ohc=2xGGOEeUo_EQ7kNvwGvGrC_&_nc_gid=AnW8kHdrc1M84C-4EdZx9w&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfumunrwCqH9v8FLt8Wshy0fVwUaHF86XYf7-cJNrmRZnA&oe=69871BCB&_nc_sid=8b3546",
+        "timestamp": "2026-02-03T01:07:49.076033+00:00"
+      }
+    }
   }
 ]
