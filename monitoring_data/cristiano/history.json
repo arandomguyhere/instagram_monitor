@@ -572,5 +572,30 @@
         "timestamp": "2026-02-04T19:03:55.270091+00:00"
       }
     }
+  },
+  {
+    "timestamp": "2026-02-05T06:43:30.794322+00:00",
+    "snapshot": {
+      "username": "cristiano",
+      "full_name": "Cristiano Ronaldo",
+      "biography": "",
+      "is_private": false,
+      "is_verified": true,
+      "followers": 671031250,
+      "following": 625,
+      "posts": 4008,
+      "profile_pic_url": "https://scontent-ams2-1.cdninstagram.com/v/t51.2885-19/472007201_1142000150877579_994350541752907763_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMxIn0&_nc_ht=scontent-ams2-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QH44Cefm6ZxEl1gCM7IMNOaw7r23gXiQz_vxs9RjYzZd1txsm5Dnka0t0QDsD65Iq0&_nc_ohc=WZQrAiGUMj0Q7kNvwGl1aqs&_nc_gid=qfxh2nNcQliwDZWh0b7OAQ&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfvhksVFpcO4EJfv77r4_uEdXXjs7IQ3-dm8Xz0LebIxiw&oe=698A051E&_nc_sid=8b3546",
+      "last_updated": "2026-02-05T06:43:30.794322+00:00",
+      "schema": "v1",
+      "local_profile_pic": "monitoring_data/cristiano/profile_pic.jpg",
+      "profile_pic_downloaded": true
+    },
+    "changes": {
+      "profile_pic_url": {
+        "old": "https://scontent-iad3-1.cdninstagram.com/v/t51.2885-19/472007201_1142000150877579_994350541752907763_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=scontent-iad3-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QG4zPkkW_iPpaMiQazte0Ys43g3laxqA2uELx_EdNNc0N9Lp8wXdDun9uHrYykJitQ&_nc_ohc=g5EODC5kFoMQ7kNvwFaOHk4&_nc_gid=4B3NdU3JtJW4MOhldRE6Vw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfvWxOccRic_-7kMQcFg9Ao3WndNSWmD5ojGQBXnVdX6tA&oe=69895C5E&_nc_sid=8b3546",
+        "new": "https://scontent-ams2-1.cdninstagram.com/v/t51.2885-19/472007201_1142000150877579_994350541752907763_n.jpg?stp=dst-jpg_s320x320_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMxIn0&_nc_ht=scontent-ams2-1.cdninstagram.com&_nc_cat=1&_nc_oc=Q6cZ2QH44Cefm6ZxEl1gCM7IMNOaw7r23gXiQz_vxs9RjYzZd1txsm5Dnka0t0QDsD65Iq0&_nc_ohc=WZQrAiGUMj0Q7kNvwGl1aqs&_nc_gid=qfxh2nNcQliwDZWh0b7OAQ&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfvhksVFpcO4EJfv77r4_uEdXXjs7IQ3-dm8Xz0LebIxiw&oe=698A051E&_nc_sid=8b3546",
+        "timestamp": "2026-02-05T06:43:30.794322+00:00"
+      }
+    }
   }
 ]
